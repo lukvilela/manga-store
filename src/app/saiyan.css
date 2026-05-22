@@ -1,0 +1,100 @@
+/* Saiyan Mode — overrides ULTRA INSTINCT ativados pelo Konami code.
+   Tudo escopado em .saiyan-mode pra nao impactar nada quando desligado. */
+
+@keyframes saiyan-aura {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(15deg);
+  }
+}
+
+@keyframes saiyan-cursor-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.45);
+    opacity: 0.9;
+  }
+}
+
+body.saiyan-mode {
+  background:
+    radial-gradient(ellipse at top, rgba(255, 201, 73, 0.18), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(193, 18, 31, 0.22), transparent 60%),
+    linear-gradient(135deg, #1a0f05 0%, #0e0a0a 50%, #2a0a05 100%);
+  background-size: 200% 200%;
+  animation: saiyan-aura 8s ease-in-out infinite;
+}
+
+/* Tipografia ainda mais bold */
+body.saiyan-mode {
+  font-weight: 600;
+}
+body.saiyan-mode .display,
+body.saiyan-mode .jp,
+body.saiyan-mode h1,
+body.saiyan-mode h2,
+body.saiyan-mode h3 {
+  text-shadow:
+    0 0 12px rgba(255, 201, 73, 0.55),
+    0 0 28px rgba(193, 18, 31, 0.45);
+  letter-spacing: 0.02em;
+}
+
+/* Mais glow vermelho/amarelo em elementos chave */
+body.saiyan-mode .glow-red,
+body.saiyan-mode .text-akira-red {
+  text-shadow:
+    0 0 8px var(--akira-red),
+    0 0 22px var(--akira-yellow),
+    0 0 40px var(--akira-red);
+}
+
+body.saiyan-mode .bg-akira-red {
+  box-shadow:
+    0 0 18px rgba(193, 18, 31, 0.7),
+    0 0 38px rgba(255, 201, 73, 0.45),
+    var(--shadow-hard-lg);
+}
+
+body.saiyan-mode .bg-akira-yellow {
+  box-shadow:
+    0 0 16px rgba(255, 201, 73, 0.7),
+    var(--shadow-hard);
+}
+
+body.saiyan-mode [class*="border-akira-"] {
+  filter: drop-shadow(0 0 6px rgba(255, 201, 73, 0.55));
+}
+
+/* Cursor pulsante com glow — overlay fixed acompanhando o mouse */
+body.saiyan-mode {
+  cursor: crosshair;
+}
+
+.saiyan-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 201, 73, 0.85), rgba(193, 18, 31, 0.35) 55%, transparent 75%);
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  animation: saiyan-cursor-pulse 1.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Quando saiyan off, esconde o overlay caso fique pendurado */
+body:not(.saiyan-mode) .saiyan-cursor {
+  display: none;
+}

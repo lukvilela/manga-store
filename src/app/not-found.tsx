@@ -1,10 +1,12 @@
 import Link from "next/link";
 import Header from "@/components/Header";
+import NotFoundAkiraTrigger from "@/components/easter-eggs/NotFoundAkiraTrigger";
 
 export default function NotFound() {
   return (
     <>
       <Header />
+      <NotFoundAkiraTrigger />
       <main className="relative overflow-hidden min-h-[calc(100vh-80px)] bg-zone-red flex items-center">
         {/* Backdrop: katakana gigante */}
         <div
@@ -44,6 +46,7 @@ export default function NotFound() {
               className="display text-akira-red glow-red leading-[0.85] glitch-text"
               style={{ fontSize: "clamp(5rem, 18vw, 14rem)" }}
               data-text="ERROR 404"
+              data-akira-target="title"
             >
               ERROR 404
             </h1>

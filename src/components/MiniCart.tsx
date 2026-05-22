@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import { playSwoosh } from "@/lib/sfx";
 
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -42,7 +43,12 @@ export default function MiniCart() {
     <div ref={wrapperRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => {
+            if (!v) playSwoosh();
+            return !v;
+          });
+        }}
         aria-expanded={open}
         aria-label={`Carrinho (${count} itens)`}
         className="relative inline-flex items-center justify-center w-10 h-10 rounded border border-akira-red bg-[var(--bg-2)] hover:bg-akira-red hover:text-ink transition-all"

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import MiniCart from "@/components/MiniCart";
 import GlobalSearch from "@/components/GlobalSearch";
+import StreakBadge from "@/components/gamification/StreakBadge";
+import SfxToggle from "@/components/SfxToggle";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -28,13 +30,22 @@ export default function Header() {
             <span className="pulse-neon w-1.5 h-1.5 rounded-full bg-akira-red shadow-[0_0_8px_var(--akira-red)]" />
           </Link>
           <Link href="/novidades" className="hover:text-akira-cyan transition-colors">Novidades</Link>
+          <Link href="/mood" className="hover:text-akira-pink transition-colors flex items-center gap-1.5">
+            <span>Mood</span>
+            <span aria-hidden className="text-sm">🎭</span>
+          </Link>
           <Link href="/genero/acao" className="hover:text-akira-yellow transition-colors">Generos</Link>
           <Link href="/busca" className="hover:text-akira-pink transition-colors">Catalogo</Link>
+          <Link href="/comunidade" className="hover:text-akira-pink transition-colors flex items-center gap-1.5">
+            <span>Comunidade</span>
+            <span className="jp text-akira-pink text-[10px]">コミュ</span>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3 md:gap-4 text-sm">
           {user ? (
             <>
+              <StreakBadge />
               <Link
                 href="/conta"
                 className="hidden lg:inline-block text-ink-soft hover:text-akira-cyan transition-colors text-xs font-mono uppercase tracking-widest"
@@ -65,6 +76,7 @@ export default function Header() {
               </Link>
             </>
           )}
+          <SfxToggle />
           <MiniCart />
         </div>
       </div>
