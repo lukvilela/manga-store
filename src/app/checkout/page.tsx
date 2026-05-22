@@ -13,12 +13,8 @@ import StepShippingPayment, {
   type ShippingPaymentData,
 } from "@/components/checkout/StepShippingPayment";
 import StepConfirmation from "@/components/checkout/StepConfirmation";
-
-const SHIPPING_PRICES: Record<ShippingPaymentData["shipping"], number> = {
-  PAC: 15.9,
-  SEDEX: 24.9,
-  PICKUP: 0,
-};
+import { calcShippingQuotes } from "@/lib/shipping";
+import { persistOrder, generateTrackingCode, type StoredOrder } from "@/lib/orders-store";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -71,7 +67,22 @@ export default function CheckoutPage() {
     }
   }, [count, authLoading, router, redirecting]);
 
-  const shippingPrice = SHIPPING_PRICES[shippingPayment.shipping];
+  // Cota dinamica por CEP/UF (mesma logica do step 3)
+  const quotes = useMemo(
+    () =>
+      calcShippingQuotes({
+        uf: address.state,
+        cep: address.cep,
+        subtotal: total,
+        weightKg: 0.3 + count * 0.2,
+      }),
+    [address.state, address.cep, total, count]
+  );
+  const currentQuote = quotes.find((q) => q.method === shippingPayment.shipping);
+  const shippingPrice = currentQuote?.available ? currentQuote.price : 0;
+  const shippingEtaDays = currentQuote?.etaDays ?? 7;
+  const shippingLabel = currentQuote?.label ?? shippingPayment.shipping;
+
   const discount =
     shippingPayment.payment === "PIX"
       ? total * 0.05
@@ -92,19 +103,31 @@ export default function CheckoutPage() {
     setRedirecting(true);
 
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-    const payload = {
+    const trackingCode = generateTrackingCode(orderId);
+    const payload: StoredOrder = {
       orderId,
+      trackingCode,
       identification,
       address,
       shipping: shippingPayment.shipping,
+      shippingLabel,
+      shippingEtaDays,
       payment: shippingPayment.payment,
       installments: shippingPayment.installments,
-      items,
+      items: items.map((it) => ({
+        volumeId: it.volumeId,
+        seriesTitle: it.seriesTitle,
+        volumeNumber: it.volumeNumber,
+        quantity: it.quantity,
+        price: it.price,
+        coverImage: it.coverImage,
+      })),
       totals: { subtotal: total, shipping: shippingPrice, discount, total: totalFinal },
       createdAt: new Date().toISOString(),
     };
 
-    // mock persist na session (pagina sucesso le)
+    // Persiste em localStorage (cross-session) + sessionStorage (compatibilidade)
+    persistOrder(payload);
     try {
       sessionStorage.setItem(`order:${orderId}`, JSON.stringify(payload));
     } catch {
@@ -194,6 +217,9 @@ export default function CheckoutPage() {
                 value={shippingPayment}
                 onChange={setShippingPayment}
                 subtotal={total}
+                itemCount={count}
+                cep={address.cep}
+                uf={address.state}
                 onNext={() => setStep(4)}
                 onBack={() => setStep(2)}
               />

@@ -5,6 +5,13 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import {
+  deriveStatus,
+  getStatusMeta,
+  useOrders,
+  type OrderStatus,
+  type StoredOrder,
+} from "@/lib/orders-store";
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
@@ -15,73 +22,44 @@ const dateFmt = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
-type StoredOrder = {
-  orderId: string;
-  createdAt: string;
-  totals: { total: number };
-  payment: "PIX" | "CREDIT_CARD" | "BOLETO";
-  items: Array<{
-    volumeId: string;
-    seriesTitle: string;
-    quantity: number;
-    coverImage: string;
-    volumeNumber: number;
-  }>;
-};
+type StatusFilter = "todos" | OrderStatus;
 
-type StatusFilter = "todos" | "pendente" | "pago" | "entregue";
+const FILTERS: StatusFilter[] = [
+  "todos",
+  "pendente",
+  "confirmado",
+  "preparando",
+  "enviado",
+  "a_caminho",
+  "entregue",
+];
 
-// status mock determinado pela idade do pedido
-function deriveStatus(createdAt: string): "pendente" | "pago" | "entregue" {
-  const ageMs = Date.now() - +new Date(createdAt);
-  const ageH = ageMs / 3_600_000;
-  if (ageH < 1) return "pendente";
-  if (ageH < 72) return "pago";
-  return "entregue";
-}
-
-const STATUS_META: Record<
-  ReturnType<typeof deriveStatus>,
-  { label: string; color: string; kanji: string }
-> = {
-  pendente: { label: "PENDENTE", color: "var(--akira-yellow)", kanji: "待" },
-  pago: { label: "PAGO", color: "var(--akira-cyan)", kanji: "済" },
-  entregue: { label: "ENTREGUE", color: "var(--akira-green)", kanji: "届" },
+const FILTER_LABEL: Record<StatusFilter, string> = {
+  todos: "todos",
+  pendente: "pendente",
+  confirmado: "confirmado",
+  preparando: "preparando",
+  enviado: "enviado",
+  a_caminho: "a caminho",
+  entregue: "entregue",
 };
 
 export default function PedidosPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [orders, setOrders] = useState<StoredOrder[]>([]);
+  const { orders, hydrated } = useOrders();
   const [filter, setFilter] = useState<StatusFilter>("todos");
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/conta/pedidos");
   }, [loading, user, router]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const list: StoredOrder[] = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const k = sessionStorage.key(i);
-      if (!k || !k.startsWith("order:")) continue;
-      try {
-        const raw = sessionStorage.getItem(k);
-        if (raw) list.push(JSON.parse(raw));
-      } catch {
-        // skip
-      }
-    }
-    list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-    setOrders(list);
-  }, []);
-
-  const filtered = useMemo(() => {
+  const filtered = useMemo<StoredOrder[]>(() => {
     if (filter === "todos") return orders;
-    return orders.filter((o) => deriveStatus(o.createdAt) === filter);
+    return orders.filter((o) => deriveStatus(o) === filter);
   }, [orders, filter]);
 
-  if (loading || !user) {
+  if (loading || !user || !hydrated) {
     return (
       <div className="panel-frame bg-[var(--bg-2)] p-10 text-center">
         <p className="display text-2xl text-[var(--akira-red)] glow-red pulse-neon">CARREGANDO</p>
@@ -108,12 +86,12 @@ export default function PedidosPage() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
-        {(["todos", "pendente", "pago", "entregue"] as StatusFilter[]).map((f) => {
+        {FILTERS.map((f) => {
           const active = filter === f;
           const count =
             f === "todos"
               ? orders.length
-              : orders.filter((o) => deriveStatus(o.createdAt) === f).length;
+              : orders.filter((o) => deriveStatus(o) === f).length;
           return (
             <button
               key={f}
@@ -124,7 +102,7 @@ export default function PedidosPage() {
                   : "border-[var(--line)] bg-[var(--bg-2)] text-[var(--ink-soft)] hover:border-[var(--akira-red)] hover:text-[var(--ink)]"
               }`}
             >
-              {f} <span className="ml-2 numerals">({count})</span>
+              {FILTER_LABEL[f]} <span className="ml-2 numerals">({count})</span>
             </button>
           );
         })}
@@ -139,7 +117,8 @@ export default function PedidosPage() {
           </p>
           <p className="jp mt-2 text-base text-[var(--ink-muted)]">注文なし</p>
           <p className="mt-3 font-mono text-xs text-[var(--ink-muted)] uppercase">
-            {">"} {orders.length === 0
+            {">"}{" "}
+            {orders.length === 0
               ? "compre algum volume pra ver aqui"
               : "remova o filtro pra ver outros pedidos"}
           </p>
@@ -156,8 +135,8 @@ export default function PedidosPage() {
       ) : (
         <ul className="space-y-4">
           {filtered.map((o) => {
-            const status = deriveStatus(o.createdAt);
-            const meta = STATUS_META[status];
+            const status = deriveStatus(o);
+            const meta = getStatusMeta(status);
             const qty = o.items.reduce((s, i) => s + i.quantity, 0);
             const preview = o.items.slice(0, 4);
             const extra = o.items.length - preview.length;
@@ -170,16 +149,14 @@ export default function PedidosPage() {
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                       <span
-                        className="inline-block px-2 py-0.5 font-mono text-[10px] font-bold"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider"
                         style={{ background: meta.color, color: "var(--bg)" }}
                       >
-                        {meta.label}
+                        <span className="jp text-xs">{meta.kanji}</span> {meta.label}
                       </span>
-                      <p className="display text-2xl text-[var(--ink)] mt-2">
-                        #{o.orderId}
-                      </p>
+                      <p className="display text-2xl text-[var(--ink)] mt-2">#{o.orderId}</p>
                       <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest mt-1">
-                        {dateFmt.format(new Date(o.createdAt))} · {qty} item(ns) · {o.payment}
+                        {dateFmt.format(new Date(o.createdAt))} · {qty} item(ns) · {o.payment} · {o.shippingLabel}
                       </p>
                     </div>
                     <div className="text-right">
@@ -198,7 +175,7 @@ export default function PedidosPage() {
                         className="relative h-20 w-14 flex-shrink-0 overflow-hidden border-2 border-[var(--ink)] shadow-hard"
                         title={`${it.seriesTitle} vol.${it.volumeNumber}`}
                       >
-                        <Image src={it.coverImage} alt={it.seriesTitle} fill className="object-cover" />
+                        <Image src={it.coverImage} alt={it.seriesTitle} fill className="object-cover" unoptimized />
                       </div>
                     ))}
                     {extra > 0 && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { calcShippingQuotes, getZoneName, type ShippingQuote } from "@/lib/shipping";
 
 export type ShippingMethod = "PAC" | "SEDEX" | "PICKUP";
 export type PaymentMethod = "PIX" | "CREDIT_CARD" | "BOLETO";
@@ -13,12 +14,6 @@ export type ShippingPaymentData = {
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const SHIPPING_OPTIONS: { value: ShippingMethod; label: string; kanji: string; price: number; eta: string }[] = [
-  { value: "PAC", label: "PAC Correios", kanji: "便", price: 15.9, eta: "7-10 dias uteis" },
-  { value: "SEDEX", label: "SEDEX Expresso", kanji: "急", price: 24.9, eta: "2-4 dias uteis" },
-  { value: "PICKUP", label: "Retirada na loja", kanji: "店", price: 0, eta: "Disponivel em 24h" },
-];
-
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; kanji: string; tag: string; tagColor: string }[] = [
   { value: "PIX", label: "PIX", kanji: "即", tag: "-5%", tagColor: "var(--akira-cyan)" },
   { value: "CREDIT_CARD", label: "Cartao de credito", kanji: "卡", tag: "12x", tagColor: "var(--akira-yellow)" },
@@ -29,16 +24,41 @@ type Props = {
   value: ShippingPaymentData;
   onChange: (data: ShippingPaymentData) => void;
   subtotal: number;
+  itemCount: number;
+  cep: string;
+  uf: string;
   onNext: () => void;
   onBack: () => void;
 };
 
-export default function StepShippingPayment({ value, onChange, subtotal, onNext, onBack }: Props) {
-  const shippingPrice = useMemo(
-    () => SHIPPING_OPTIONS.find((s) => s.value === value.shipping)?.price ?? 0,
-    [value.shipping]
+export default function StepShippingPayment({
+  value,
+  onChange,
+  subtotal,
+  itemCount,
+  cep,
+  uf,
+  onNext,
+  onBack,
+}: Props) {
+  const quotes: ShippingQuote[] = useMemo(
+    () => calcShippingQuotes({ uf, cep, subtotal, weightKg: 0.3 + itemCount * 0.2 }),
+    [uf, cep, subtotal, itemCount]
   );
 
+  const zoneName = useMemo(() => getZoneName(uf, cep), [uf, cep]);
+
+  const selectedQuote = quotes.find((q) => q.method === value.shipping) ?? quotes[0];
+
+  // Se a opcao atual nao esta disponivel (ex: PICKUP fora SP), troca pra PAC
+  if (selectedQuote && !selectedQuote.available) {
+    queueMicrotask(() => {
+      const fallback = quotes.find((q) => q.available);
+      if (fallback) onChange({ ...value, shipping: fallback.method });
+    });
+  }
+
+  const shippingPrice = selectedQuote?.available ? selectedQuote.price : 0;
   const discount =
     value.payment === "PIX" ? subtotal * 0.05 : value.payment === "BOLETO" ? subtotal * 0.03 : 0;
   const totalFinal = subtotal + shippingPrice - discount;
@@ -62,21 +82,29 @@ export default function StepShippingPayment({ value, onChange, subtotal, onNext,
 
       {/* Frete */}
       <section>
-        <div className="mb-4 flex items-baseline gap-3">
+        <div className="mb-4 flex items-baseline gap-3 flex-wrap">
           <span className="display text-2xl text-[var(--ink)]">FRETE</span>
           <span className="jp text-base text-[var(--akira-cyan)]">送料</span>
           <div className="flex-1 border-b border-dashed border-[var(--line)]" />
+          {uf && (
+            <span className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest">
+              Zona: <span className="text-[var(--akira-cyan)]">{zoneName}</span> · CEP {cep || "—"}
+            </span>
+          )}
         </div>
         <div className="grid gap-3">
-          {SHIPPING_OPTIONS.map((opt) => {
-            const active = value.shipping === opt.value;
+          {quotes.map((opt) => {
+            const active = value.shipping === opt.method;
+            const disabled = !opt.available;
             return (
               <label
-                key={opt.value}
+                key={opt.method}
                 className={`group relative flex cursor-pointer items-center gap-4 border-[2px] p-4 transition-all ${
-                  active
-                    ? "border-[var(--akira-red)] bg-[var(--bg-3)] shadow-[0_0_16px_rgba(193,18,31,0.3)]"
-                    : "border-[var(--line)] bg-[var(--bg-2)] hover:border-[var(--ink-soft)]"
+                  disabled
+                    ? "border-[var(--line)] bg-[var(--bg-2)] opacity-40 cursor-not-allowed"
+                    : active
+                      ? "border-[var(--akira-red)] bg-[var(--bg-3)] shadow-[0_0_16px_rgba(193,18,31,0.3)]"
+                      : "border-[var(--line)] bg-[var(--bg-2)] hover:border-[var(--ink-soft)]"
                 }`}
               >
                 <input
@@ -84,11 +112,12 @@ export default function StepShippingPayment({ value, onChange, subtotal, onNext,
                   name="shipping"
                   className="sr-only"
                   checked={active}
-                  onChange={() => onChange({ ...value, shipping: opt.value })}
+                  disabled={disabled}
+                  onChange={() => !disabled && onChange({ ...value, shipping: opt.method })}
                 />
                 <div
                   className={`flex h-12 w-12 flex-shrink-0 items-center justify-center border-[2px] jp text-xl ${
-                    active
+                    active && !disabled
                       ? "border-[var(--akira-red)] bg-[var(--akira-red)] text-[var(--ink)]"
                       : "border-[var(--line)] bg-[var(--bg-3)] text-[var(--ink-muted)]"
                   }`}
@@ -98,6 +127,15 @@ export default function StepShippingPayment({ value, onChange, subtotal, onNext,
                 <div className="flex-1">
                   <p className="display text-lg text-[var(--ink)]">{opt.label}</p>
                   <p className="font-mono text-xs text-[var(--ink-muted)] uppercase">{opt.eta}</p>
+                  {opt.reason && (
+                    <p
+                      className={`mt-1 font-mono text-[10px] uppercase tracking-widest ${
+                        disabled ? "text-[var(--akira-red)]" : "text-[var(--akira-cyan)]"
+                      }`}
+                    >
+                      {">"} {opt.reason}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   {opt.price === 0 ? (
@@ -106,7 +144,7 @@ export default function StepShippingPayment({ value, onChange, subtotal, onNext,
                     <span className="display text-xl text-[var(--ink)] numerals">{fmt.format(opt.price)}</span>
                   )}
                 </div>
-                {active && (
+                {active && !disabled && (
                   <span className="pointer-events-none absolute -right-2 -top-2 onomatopeia text-[10px]">OK!</span>
                 )}
               </label>
