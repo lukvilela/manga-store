@@ -25,7 +25,8 @@ function cleanAbout(about: string | null): string {
 
 export default async function AutorPage({ params }: { params: Promise<Params> }) {
   const { name: rawName } = await params;
-  const decoded = decodeURIComponent(rawName).replace(/-/g, " ").trim();
+  // Aceita 3 separadores: hifen, plus, %20/espaco
+  const decoded = decodeURIComponent(rawName).replace(/[-+]/g, " ").trim();
   if (!decoded) notFound();
 
   const { author, mangas } = await getMangasByAuthorName(decoded, 24);
