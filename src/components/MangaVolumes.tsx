@@ -1,4 +1,6 @@
 import { getMangaColor, getMangaColorAlpha } from "@/lib/manga-colors";
+import { getVolumeCoversByTitle } from "@/lib/mangadex-api";
+import VolumeCoverImage from "./VolumeCoverImage";
 
 type Props = {
   title: string;
@@ -7,10 +9,21 @@ type Props = {
 };
 
 /**
- * Grid mock de volumes — gera N cards estilo "volume X" pra simular catálogo.
- * Próxima onda: vincular volumes reais com preços, estoque, etc (Prisma).
+ * Grid de volumes — agora puxa capas REAIS por volume via MangaDex.
+ *
+ * Fluxo:
+ *  1. Tenta `getVolumeCoversByTitle(title)` no server (cache 24h via fetch ISR).
+ *  2. Pra cada volume, se temos capa MangaDex -> usa next/image + badge.
+ *  3. Senao -> fallback colorido (visual original).
+ *
+ * Mangas obscuros que nao tem registro no MangaDex caem 100% no fallback,
+ * sem quebrar a UI.
  */
-export default function MangaVolumes({ title, totalVolumes, isPublishing }: Props) {
+export default async function MangaVolumes({
+  title,
+  totalVolumes,
+  isPublishing,
+}: Props) {
   if (!totalVolumes || totalVolumes < 1) {
     return (
       <section className="bg-bg py-16 px-4 md:px-8 border-b border-[var(--line)]">
@@ -26,16 +39,21 @@ export default function MangaVolumes({ title, totalVolumes, isPublishing }: Prop
 
   const color = getMangaColor(title);
   const colorSoft = getMangaColorAlpha(title, 0.6);
-  const colorFaint = getMangaColorAlpha(title, 0.12);
 
-  // Limitar exibição pra não estourar (mostra primeiros 12)
+  // Limitar exibicao pra nao estourar (mostra primeiros 12)
   const displayCount = Math.min(totalVolumes, 12);
   const volumes = Array.from({ length: displayCount }, (_, i) => i + 1);
 
-  // Preço mock por volume (R$ 29.90 padrão, varia +/-)
+  // Busca capas MangaDex (server-side, cache 24h). Falha = array vazio.
+  const mdxCovers = await getVolumeCoversByTitle(title);
+  const coverByVolume = new Map(
+    mdxCovers.map((c) => [String(parseInt(c.volumeNumber)), c.coverUrl]),
+  );
+
+  // Preco mock por volume (R$ 29.90 padrao, varia +/-)
   const priceMap = (vol: number) => {
     const base = 29.9;
-    const variant = (vol % 3 === 0) ? 5 : 0;
+    const variant = vol % 3 === 0 ? 5 : 0;
     return base + variant;
   };
 
@@ -72,33 +90,23 @@ export default function MangaVolumes({ title, totalVolumes, isPublishing }: Prop
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-5 stagger">
           {volumes.map((vol) => {
             const price = priceMap(vol);
+            const coverUrl = coverByVolume.get(String(vol)) ?? null;
             return (
               <button
                 key={vol}
                 type="button"
-                className="group block text-left card-lift"
+                className="group block text-left card-lift w-full"
               >
-                <div
-                  className="relative aspect-[2/3] border-2 border-ink shadow-hard group-hover:shadow-hard-lg overflow-hidden flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${color} 0%, ${colorSoft} 100%)`,
-                  }}
-                >
-                  {/* Halftone pattern */}
-                  <div className="absolute inset-0 halftone opacity-40" aria-hidden />
-
-                  {/* Volume number gigante */}
-                  <span className="relative display text-7xl md:text-8xl text-ink glow-red leading-none drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)]">
-                    {String(vol).padStart(2, "0")}
-                  </span>
-
-                  {/* Vol label */}
-                  <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-akira-yellow text-[9px] font-mono font-bold uppercase tracking-widest border border-akira-yellow">
-                    VOL
-                  </span>
+                <div className="relative aspect-[2/3] border-2 border-ink shadow-hard group-hover:shadow-hard-lg overflow-hidden flex items-center justify-center bg-bg">
+                  <VolumeCoverImage
+                    coverUrl={coverUrl}
+                    seriesTitle={title}
+                    volumeNumber={vol}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                  />
 
                   {/* Add to cart hover */}
-                  <div className="absolute inset-x-0 bottom-0 p-2 bg-black/85 backdrop-blur-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-between">
+                  <div className="absolute inset-x-0 bottom-0 p-2 bg-black/85 backdrop-blur-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-between z-20">
                     <span className="text-xs font-mono font-bold text-akira-cyan">+ Carrinho</span>
                     <span className="text-xs">→</span>
                   </div>

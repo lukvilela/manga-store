@@ -3,6 +3,7 @@ import { Bagel_Fat_One, Plus_Jakarta_Sans, JetBrains_Mono, Noto_Serif_JP } from 
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const display = Bagel_Fat_One({
   subsets: ["latin"],
@@ -46,11 +47,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${sans.variable} ${display.variable} ${mono.variable} ${jp.variable} antialiased scanlines`}>
         <div className="grain" aria-hidden />
-        <AuthProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

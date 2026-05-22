@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import MangaCarousel from "@/components/MangaCarousel";
 import MangaSpotlight from "@/components/MangaSpotlight";
+import Footer from "@/components/Footer";
 import { getTopManga, getMangaByGenre, toCardData } from "@/lib/manga-api";
 
 // Jikan genre IDs:
@@ -108,35 +109,7 @@ export default async function Home() {
         size="md"
       />
 
-      {/* Footer Akira-style */}
-      <footer className="relative border-t-4 border-akira-red mt-8 py-16 px-4 md:px-8 overflow-hidden">
-        <div className="absolute inset-0 halftone-lg opacity-30 pointer-events-none" aria-hidden />
-        <div className="bike-streak" style={{ top: "30%" }} />
-
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-8">
-            <div>
-              <p className="jp text-akira-red text-3xl font-black glow-red mb-2">アキラ</p>
-              <p className="display text-4xl md:text-5xl">
-                MANGA<span className="text-akira-red glow-red">VERSE</span>
-                <span className="text-akira-red">.</span>
-              </p>
-              <p className="jp text-base text-ink-muted mt-2">漫画ヴァース · Neo-Tokyo · 2026</p>
-            </div>
-            <div className="flex gap-6 eyebrow flex-wrap">
-              <span className="text-akira-red glow-red text-xl">DOKI!</span>
-              <span className="text-akira-cyan glow-cyan text-xl">ZAP!</span>
-              <span className="text-akira-pink glow-pink text-xl">BAM!</span>
-              <span className="text-akira-yellow glow-yellow text-xl">KAPOW!</span>
-              <span className="text-akira-violet glow-violet text-xl">CRASH!</span>
-            </div>
-          </div>
-          <div className="pt-6 border-t border-[var(--line)] flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-            <p>© 2026 · Powered by Jikan API (MyAnimeList)</p>
-            <p>Made in <span className="text-akira-red">Brasil</span> · Inspired by <span className="text-akira-yellow">Otomo Katsuhiro</span></p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 }

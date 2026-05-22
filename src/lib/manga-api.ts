@@ -77,6 +77,93 @@ export async function getTopManga(limit = 20, type = "manga"): Promise<JikanMang
   }
 }
 
+/** Top mangás por rank com paginacao (page=1..N, 25 itens por pagina) */
+export async function getTopMangaPaged(
+  page = 1,
+  limit = 25,
+  type = "manga"
+): Promise<{ data: JikanManga[]; lastPage: number; hasNext: boolean }> {
+  try {
+    const r = await jikan<JikanManga[]>(`/top/manga?limit=${limit}&type=${type}&page=${page}`);
+    return {
+      data: r.data,
+      lastPage: r.pagination?.last_visible_page ?? 1,
+      hasNext: r.pagination?.has_next_page ?? false,
+    };
+  } catch (e) {
+    console.error("[jikan] getTopMangaPaged failed:", e);
+    return { data: [], lastPage: 1, hasNext: false };
+  }
+}
+
+/** Trending — atualmente publicando + ordenado por score desc */
+export async function getTrendingManga(limit = 25): Promise<JikanManga[]> {
+  try {
+    const r = await jikan<JikanManga[]>(
+      `/manga?status=publishing&order_by=score&sort=desc&limit=${limit}&min_score=7`
+    );
+    return r.data;
+  } catch (e) {
+    console.error("[jikan] getTrendingManga failed:", e);
+    return [];
+  }
+}
+
+/** Novidades — recem comecados (status publishing, ordenado por start_date desc) */
+export async function getNovidadesManga(limit = 25): Promise<JikanManga[]> {
+  try {
+    const r = await jikan<JikanManga[]>(
+      `/manga?status=publishing&order_by=start_date&sort=desc&limit=${limit}`
+    );
+    return r.data;
+  } catch (e) {
+    console.error("[jikan] getNovidadesManga failed:", e);
+    return [];
+  }
+}
+
+/** Busca mangas por nome do autor (Jikan nao tem filtro author direto no /manga, usa /people search). */
+export async function getMangasByAuthorName(
+  name: string,
+  limit = 20
+): Promise<{ author: { mal_id: number; name: string; about: string | null; image: string | null } | null; mangas: JikanManga[] }> {
+  if (!name.trim()) return { author: null, mangas: [] };
+  try {
+    type Person = {
+      mal_id: number;
+      name: string;
+      about: string | null;
+      images?: { jpg?: { image_url?: string } };
+      manga?: Array<{ position: string; manga: JikanManga }>;
+    };
+    // 1) Acha pessoa por nome
+    const people = await jikan<Person[]>(`/people?q=${encodeURIComponent(name)}&limit=3&order_by=favorites&sort=desc`);
+    const person = people.data?.[0];
+    if (!person) return { author: null, mangas: [] };
+
+    // 2) Pega /people/:id/full pra ter a lista completa de obras
+    const full = await jikan<Person>(`/people/${person.mal_id}/full`);
+    const works = full.data.manga ?? [];
+    const mangas = works
+      .map((w) => w.manga)
+      .filter((m): m is JikanManga => !!m)
+      .slice(0, limit);
+
+    return {
+      author: {
+        mal_id: full.data.mal_id,
+        name: full.data.name,
+        about: full.data.about ?? null,
+        image: full.data.images?.jpg?.image_url ?? null,
+      },
+      mangas,
+    };
+  } catch (e) {
+    console.error("[jikan] getMangasByAuthorName failed:", e);
+    return { author: null, mangas: [] };
+  }
+}
+
 /** Manga por gênero (1=Action, 22=Romance, 27=Shounen, 42=Seinen, 8=Drama, 10=Fantasy, etc) */
 export async function getMangaByGenre(genreId: number, limit = 20): Promise<JikanManga[]> {
   try {
@@ -140,9 +227,10 @@ export type MangaCardData = {
 
 export function toCardData(m: JikanManga): MangaCardData {
   // Defensivo: Jikan as vezes retorna mangás com campos faltando
-  const images = m.images || {};
-  const jpg = images.jpg || {};
-  const webp = images.webp || {};
+  type ImgVariant = { image_url?: string; small_image_url?: string; large_image_url?: string };
+  const images = (m.images || {}) as { jpg?: ImgVariant; webp?: ImgVariant };
+  const jpg: ImgVariant = images.jpg || {};
+  const webp: ImgVariant = images.webp || {};
   const cover = webp.large_image_url || jpg.large_image_url || jpg.image_url || "";
 
   return {

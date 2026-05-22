@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getMangaColor, getMangaColorAlpha, getContrastText } from "@/lib/manga-colors";
+import { getVolumeCoverByTitleAndNumber } from "@/lib/mangadex-api";
 import type { MangaCardData } from "@/lib/manga-api";
 import AddToCartForm from "./AddToCartForm";
 
@@ -29,7 +30,7 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-export default function VolumeProductHero({
+export default async function VolumeProductHero({
   manga,
   volumeNumber,
   totalVolumes,
@@ -43,6 +44,12 @@ export default function VolumeProductHero({
 
   const volStr = String(volumeNumber).padStart(2, "0");
   const slug = slugify(manga.title);
+
+  // Tenta buscar capa REAL do volume especifico (MangaDex, cache 24h).
+  // Se nao achar, fica null e a UI cai no fluxo antigo (capa da serie + numero gigante).
+  const volumeCover = await getVolumeCoverByTitleAndNumber(manga.title, volumeNumber);
+  const hasOfficialCover = Boolean(volumeCover);
+  const heroImage = volumeCover ?? manga.cover ?? null;
 
   return (
     <section
@@ -90,51 +97,63 @@ export default function VolumeProductHero({
             className="relative aspect-[2/3] max-w-md mx-auto md:mx-0 border-4 border-ink shadow-hard-lg depth-stack overflow-hidden"
             style={{ background: color }}
           >
-            {manga.cover && (
+            {heroImage && (
               <Image
-                src={manga.cover}
+                src={heroImage}
                 alt={`${manga.title} Volume ${volStr}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 480px"
                 className="object-cover opacity-95"
-                unoptimized
+                // capa Jikan/MAL fica unoptimized; capa MangaDex passa pelo optimizer
+                unoptimized={!hasOfficialCover}
                 priority
               />
             )}
 
-            {/* Vertical gradient pra legibilidade do numero */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+            {/* Quando NAO temos capa oficial do volume: gradient escuro pra dar contraste no
+                numero gigante sobreposto. Quando temos capa oficial, o numero gigante e
+                escondido (a propria capa ja comunica o volume). */}
+            {!hasOfficialCover && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 halftone opacity-30 pointer-events-none" aria-hidden />
 
-            {/* Halftone overlay */}
-            <div className="absolute inset-0 halftone opacity-30 pointer-events-none" aria-hidden />
-
-            {/* Numero gigante sobreposto */}
-            <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-end pointer-events-none">
-              <span className="eyebrow text-akira-yellow glow-yellow mb-1 text-[10px]">
-                Volume
-              </span>
-              <span
-                className="display text-[7rem] md:text-[10rem] leading-none text-akira-red glow-red drop-shadow-[0_6px_14px_rgba(0,0,0,0.85)]"
-                style={{ WebkitTextStroke: "2px var(--ink)" }}
-              >
-                {volStr}
-              </span>
-            </div>
+                {/* Numero gigante sobreposto */}
+                <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-end pointer-events-none">
+                  <span className="eyebrow text-akira-yellow glow-yellow mb-1 text-[10px]">
+                    Volume
+                  </span>
+                  <span
+                    className="display text-[7rem] md:text-[10rem] leading-none text-akira-red glow-red drop-shadow-[0_6px_14px_rgba(0,0,0,0.85)]"
+                    style={{ WebkitTextStroke: "2px var(--ink)" }}
+                  >
+                    {volStr}
+                  </span>
+                </div>
+              </>
+            )}
 
             {/* Vol badge top */}
-            <div className="absolute top-3 left-3 px-2 py-1 bg-black/80 border border-akira-yellow text-akira-yellow text-[10px] font-mono font-bold uppercase tracking-widest">
+            <div className="absolute top-3 left-3 px-2 py-1 bg-black/80 border border-akira-yellow text-akira-yellow text-[10px] font-mono font-bold uppercase tracking-widest z-10">
               Vol {volStr} / {String(totalVolumes).padStart(2, "0")}
             </div>
 
+            {/* Badge "Capa oficial" quando temos capa real do volume */}
+            {hasOfficialCover && (
+              <div className="absolute top-3 right-3 px-2 py-1 bg-emerald-500 text-bg text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-ink shadow-hard z-10">
+                Capa oficial
+              </div>
+            )}
+
             {/* Rank badge */}
             {manga.rank && (
-              <div className="absolute -top-3 -right-3 bg-akira-red text-ink px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest shadow-hard">
+              <div className="absolute -top-3 -right-3 bg-akira-red text-ink px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest shadow-hard z-20">
                 RANK #{manga.rank}
               </div>
             )}
 
             {/* Onomatopeia */}
-            <div className="absolute -bottom-4 -left-4">
+            <div className="absolute -bottom-4 -left-4 z-10">
               <span className="onomatopeia text-2xl md:text-3xl">POW!</span>
             </div>
           </div>
@@ -261,7 +280,7 @@ export default function VolumeProductHero({
               seriesTitle={manga.title}
               volumeNumber={volumeNumber}
               price={price}
-              coverImage={manga.cover}
+              coverImage={heroImage ?? manga.cover}
             />
           </div>
         </div>

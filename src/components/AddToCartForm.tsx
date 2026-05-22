@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 
 type Props = {
   volumeId: string;
@@ -22,6 +23,7 @@ export default function AddToCartForm({
   coverImage,
 }: Props) {
   const { add, items } = useCart();
+  const { show } = useToast();
   const router = useRouter();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -45,6 +47,9 @@ export default function AddToCartForm({
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+    const label = `Vol. ${volumeNumber}`;
+    const qtyText = qty > 1 ? ` (${qty}x)` : "";
+    show(`Adicionado: ${seriesTitle} — ${label}${qtyText}`, "success");
   };
 
   const handleBuyNow = () => {
@@ -55,16 +60,17 @@ export default function AddToCartForm({
   const handleShare = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     try {
-      if (typeof navigator !== "undefined" && "share" in navigator) {
-        await navigator.share({
-          title: `${seriesTitle} — Volume ${volumeNumber}`,
-          url,
-        });
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
+      if (typeof navigator === "undefined") return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nav: any = navigator;
+      if (typeof nav.share === "function") {
+        await nav.share({ title: `${seriesTitle} — Volume ${volumeNumber}`, url });
+      } else if (nav.clipboard?.writeText) {
+        await nav.clipboard.writeText(url);
       }
       setShared(true);
       setTimeout(() => setShared(false), 1600);
+      show("Link copiado pra area de transferencia", "info", 2200);
     } catch {
       // user canceled / no permission — silencioso
     }
