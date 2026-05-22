@@ -16,7 +16,7 @@ export default function Header() {
         <Link href="/" className="group flex items-center gap-3 flex-shrink-0">
           <span className="jp text-akira-red text-2xl font-black glow-red">アキラ</span>
           <span className="display text-2xl md:text-3xl text-ink tracking-tight">
-            MANGA<span className="text-akira-red glow-red">VERSE</span>
+            Akira<span className="text-akira-red glow-red"> Mangás</span>
           </span>
         </Link>
 

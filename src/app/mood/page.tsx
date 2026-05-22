@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { MOODS, type MoodAccent } from "@/lib/moods";
 
 export const metadata = {
-  title: "Mood — encontre manga pelo seu humor — MangaVerse",
+  title: "Mood — encontre manga pelo seu humor — Akira Mangás",
   description:
     "Descubra mangas pelo seu estado de espirito: rir, chorar, pancadaria, pensar, relaxar, fantasiar, romance e medo.",
 };

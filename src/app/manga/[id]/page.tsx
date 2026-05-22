@@ -11,7 +11,8 @@ import ReviewsSection from "@/components/reviews/ReviewsSection";
 import PreorderBanner from "@/components/discovery/PreorderBanner";
 import BoxSetCard from "@/components/discovery/BoxSetCard";
 import CarrosselSkeleton from "@/components/skeletons/CarrosselSkeleton";
-import { getMangaById, getMangaRecommendations, toCardData } from "@/lib/manga-api";
+import { getMangaRecommendations, toCardData } from "@/lib/manga-api";
+import { getMangaByIdWithPtSynopsis } from "@/lib/manga-api-pt";
 import { getPreorder } from "@/lib/preorders-mock";
 import { getBoxSet } from "@/lib/box-sets";
 
@@ -38,13 +39,13 @@ type Params = { id: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { id } = await params;
-  const manga = await getMangaById(parseInt(id));
-  if (!manga) return { title: "Manga não encontrado — MangaVerse" };
+  const manga = await getMangaByIdWithPtSynopsis(parseInt(id));
+  if (!manga) return { title: "Manga não encontrado — Akira Mangás" };
   return {
-    title: `${manga.title} — MangaVerse`,
-    description: manga.synopsis?.slice(0, 160) || `Detalhes do manga ${manga.title} em MangaVerse.`,
+    title: `${manga.title} — Akira Mangás`,
+    description: manga.synopsis?.slice(0, 160) || `Detalhes do manga ${manga.title} em Akira Mangás.`,
     openGraph: {
-      title: `${manga.title} — MangaVerse`,
+      title: `${manga.title} — Akira Mangás`,
       description: manga.synopsis?.slice(0, 160),
       images: manga.images?.jpg?.large_image_url ? [manga.images.jpg.large_image_url] : [],
     },
@@ -56,7 +57,7 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
   const mangaId = parseInt(id);
   if (isNaN(mangaId)) notFound();
 
-  const manga = await getMangaById(mangaId);
+  const manga = await getMangaByIdWithPtSynopsis(mangaId);
   if (!manga) notFound();
 
   const heroData = {
@@ -78,7 +79,11 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
       )}
       <MangaStats manga={manga} />
       <SocialMetrics mangaId={String(manga.mal_id)} />
-      <MangaSynopsis manga={manga} />
+      <MangaSynopsis
+        manga={manga}
+        synopsisTranslated={manga.synopsisTranslated}
+        backgroundTranslated={manga.backgroundTranslated}
+      />
       <MangaVolumes
         mangaId={manga.mal_id}
         title={manga.title}
@@ -111,7 +116,7 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
         <div className="absolute inset-0 halftone-lg opacity-25 pointer-events-none" aria-hidden />
         <div className="bike-streak" style={{ top: "40%" }} />
         <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · Dados via Jikan API (MyAnimeList)</p>
+          <p>© 2026 · Akira Mangás · Dados via Jikan API (MyAnimeList)</p>
           <p>
             <span className="text-akira-red glow-red">DOKI!</span> Made in Brasil
           </p>

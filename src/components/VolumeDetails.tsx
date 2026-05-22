@@ -159,7 +159,7 @@ export default function VolumeDetails({
                 Garantia
               </p>
               <p className="text-sm text-ink-soft leading-relaxed">
-                MangaVerse garante autenticidade e troca em caso de defeito de fabrica.
+                Akira Mangás garante autenticidade e troca em caso de defeito de fabrica.
                 Envio com embalagem reforcada anti-amasso.
               </p>
             </div>

@@ -175,7 +175,7 @@ export default async function VolumeProductHero({
               href="/"
               className="text-ink-muted hover:text-akira-cyan transition-colors"
             >
-              MangaVerse
+              Akira Mangás
             </Link>
             <span className="text-ink-muted">/</span>
             <Link

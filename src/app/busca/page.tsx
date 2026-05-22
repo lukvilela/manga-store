@@ -74,7 +74,7 @@ export default async function BuscaPage({
 
       <footer className="border-t-2 border-akira-red py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · Powered by Jikan API</p>
+          <p>© 2026 · Akira Mangás · Powered by Jikan API</p>
           <p>
             <span className="text-akira-red">DOKI!</span> Made in Brasil
           </p>

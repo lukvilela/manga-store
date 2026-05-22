@@ -78,11 +78,11 @@ export default function Footer() {
               アキラ
             </p>
             <p className="display text-3xl md:text-4xl leading-none">
-              MANGA<span className="text-akira-red glow-red">VERSE</span>
+              Akira<span className="text-akira-red glow-red"> Mangás</span>
               <span className="text-akira-red">.</span>
             </p>
             <p className="jp text-xs text-ink-muted mt-3">
-              漫画ヴァース · Neo-Tokyo · 2026
+              アキラ・マンガ · Neo-Tokyo · 2026
             </p>
             <p className="text-sm text-ink-soft mt-4 max-w-xs">
               Catalogo curado de mangas com vibracao Akira, capas em alta resolucao e ritual cyberpunk.
@@ -122,7 +122,7 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="pt-6 border-t border-[var(--line)] flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 MANGAVERSE · All rights reserved</p>
+          <p>© 2026 AKIRA MANGÁS · All rights reserved</p>
           <p>
             Powered by{" "}
             <span className="text-akira-cyan">Jikan</span> +{" "}

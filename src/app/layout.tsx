@@ -36,10 +36,10 @@ const jp = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "MANGAVERSE — Neo-Tokyo Manga Store",
+  title: "Akira Mangás — Neo-Tokyo Manga Store",
   description: "Loja de mangas com vibe Akira. Catalogo via MyAnimeList, capas em alta, vibracao cyberpunk.",
   openGraph: {
-    title: "MANGAVERSE — Neo-Tokyo Manga Store",
+    title: "Akira Mangás — Neo-Tokyo Manga Store",
     description: "Catalogo curado de mangas. Vibe Akira, Neo-Tokyo, cyberpunk.",
     type: "website",
     locale: "pt_BR",

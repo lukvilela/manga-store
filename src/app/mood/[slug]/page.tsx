@@ -44,9 +44,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
   const mood = getMoodBySlug(slug);
-  if (!mood) return { title: "Mood — MangaVerse" };
+  if (!mood) return { title: "Mood — Akira Mangás" };
   return {
-    title: `${mood.name} — Mood — MangaVerse`,
+    title: `${mood.name} — Mood — Akira Mangás`,
     description: mood.description,
   };
 }

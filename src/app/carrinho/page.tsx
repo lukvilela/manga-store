@@ -13,7 +13,7 @@ import { getTopManga, toCardData } from "@/lib/manga-api";
  * o JSX nao chega ao DOM, mas o cache fica quente pra proximas visitas.
  */
 export const metadata = {
-  title: "Carrinho · MangaVerse",
+  title: "Carrinho · Akira Mangás",
   description: "Seus volumes reservados em Neo-Tokyo.",
 };
 

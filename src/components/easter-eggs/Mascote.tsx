@@ -88,7 +88,7 @@ export default function Mascote() {
         onClick={handleClick}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        aria-label="Mascote MangaVerse — clique pra interagir"
+        aria-label="Mascote Akira Mangás — clique pra interagir"
         title="Mascote (clique)"
         className="relative block w-12 h-12 hover:scale-110 transition-transform"
       >

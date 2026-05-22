@@ -34,14 +34,14 @@ export async function generateMetadata({
   const volNum = parseInt(number);
 
   if (isNaN(mangaId) || isNaN(volNum)) {
-    return { title: "Volume nao encontrado — MangaVerse" };
+    return { title: "Volume nao encontrado — Akira Mangás" };
   }
 
   const manga = await getMangaById(mangaId);
-  if (!manga) return { title: "Volume nao encontrado — MangaVerse" };
+  if (!manga) return { title: "Volume nao encontrado — Akira Mangás" };
 
   const volStr = String(volNum).padStart(2, "0");
-  const title = `${manga.title} — Volume ${volStr} | MangaVerse`;
+  const title = `${manga.title} — Volume ${volStr} | Akira Mangás`;
   const description = `Compre o Volume ${volStr} de ${manga.title} por ${fmtBRL(
     priceFor(volNum)
   )}. Entrega em 3-5 dias. Frete gratis acima de R$150.`;
@@ -141,7 +141,7 @@ export default async function VolumeDetailPage({
         />
         <div className="bike-streak" style={{ top: "40%" }} />
         <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · Dados via Jikan API (MyAnimeList)</p>
+          <p>© 2026 · Akira Mangás · Dados via Jikan API (MyAnimeList)</p>
           <p>
             <span className="text-akira-red glow-red">DOKI!</span> Made in Brasil
           </p>

@@ -133,7 +133,7 @@ export default function AccountNav() {
       {/* Decoracao rodape */}
       <div className="border-[2px] border-dashed border-[var(--line)] p-3">
         <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest leading-relaxed">
-          {">"} mangaverse.account.v1<br />
+          {">"} akira-mangas.account.v1<br />
           {">"} neo-tokyo distribution<br />
           {">"} sync local-storage
         </p>
