@@ -3,8 +3,10 @@ import Hero from "@/components/Hero";
 import MangaCarousel from "@/components/MangaCarousel";
 import MangaSpotlight from "@/components/MangaSpotlight";
 import Footer from "@/components/Footer";
+import Newsletter from "@/components/Newsletter";
 import TodayDrop from "@/components/discovery/TodayDrop";
 import { getTopManga, getMangaByGenre, getNovidadesManga, toCardData } from "@/lib/manga-api";
+import { breadcrumbSchema, jsonLdScript } from "@/lib/structured-data";
 
 // Jikan genre IDs:
 // 1=Action 2=Adventure 4=Comedy 8=Drama 10=Fantasy
@@ -43,8 +45,15 @@ export default async function Home() {
   const joiaPool = topMangas.filter((m) => (m.score ?? 0) >= 8.5 && (m.rank ?? 0) > 100);
   const todayJoia = pickAt(joiaPool.length ? joiaPool : topMangas, 7);
 
+  // Breadcrumb da home (so 1 nivel, mas valida pro Google ja registrar a tree)
+  const homeBreadcrumb = breadcrumbSchema([{ name: "Inicio", url: "/" }]);
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(homeBreadcrumb) }}
+      />
       <Header />
       <Hero />
 
@@ -127,6 +136,13 @@ export default async function Home() {
         accent="pink"
         size="md"
       />
+
+      {/* Newsletter — captacao antes do footer */}
+      <section className="px-4 md:px-8 py-12">
+        <div className="max-w-5xl mx-auto">
+          <Newsletter variant="full" />
+        </div>
+      </section>
 
       <Footer />
     </>

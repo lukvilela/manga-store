@@ -18,7 +18,7 @@ export default function MangaCard({ manga, size = "md" }: Props) {
   return (
     <Link
       href={`/manga/${manga.id}`}
-      className={`group block flex-shrink-0 card-lift ${widthClass}`}
+      className={`group block flex-shrink-0 card-lift hover-tilt ${widthClass}`}
     >
       {/* Frame colorido externo */}
       <div
@@ -27,8 +27,13 @@ export default function MangaCard({ manga, size = "md" }: Props) {
           background: `linear-gradient(135deg, ${color} 0%, ${colorSoft} 100%)`,
         }}
       >
-        {/* Capa */}
-        <div className={`relative ${heightClass} overflow-hidden`}>
+        {/* Capa — vt-cover habilita view-transition smooth pra detail page
+         * (Cuidado: so 1 elemento com mesmo viewTransitionName pode existir;
+         * navegacoes que disparam multiplas instancias caem no fallback fade) */}
+        <div
+          className={`relative ${heightClass} overflow-hidden`}
+          style={{ viewTransitionName: `cover-${manga.id}` }}
+        >
           {manga.cover && (
             <Image
               src={manga.cover}

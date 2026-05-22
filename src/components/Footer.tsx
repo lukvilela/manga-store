@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Newsletter from "@/components/Newsletter";
 
 type FooterLink = { href: string; label: string };
 
@@ -109,6 +110,17 @@ export default function Footer() {
             links={conta}
             accent="text-akira-pink glow-pink"
           />
+        </div>
+
+        {/* Newsletter inline */}
+        <div className="mt-12 pt-8 border-t border-dashed border-[var(--line)] grid gap-4 md:grid-cols-[1fr_auto] items-end">
+          <div>
+            <p className="eyebrow text-akira-red glow-red">NEWSLETTER · ニュース</p>
+            <p className="display text-xl md:text-2xl mt-1 text-ink">
+              Drops semanais direto na <span className="text-akira-cyan glow-cyan">caixa</span>
+            </p>
+          </div>
+          <Newsletter variant="inline" />
         </div>
 
         {/* Onomatopeias separator */}

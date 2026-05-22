@@ -9,6 +9,7 @@ import {
   getMangaRecommendations,
   toCardData,
 } from "@/lib/manga-api";
+import { productSchema, breadcrumbSchema, jsonLdScript } from "@/lib/structured-data";
 
 export const revalidate = 3600;
 
@@ -96,8 +97,26 @@ export default async function VolumeDetailPage({
 
   const recommendations = await getMangaRecommendations(mangaId, 8);
 
+  // Structured data: Product do volume + Breadcrumb completo
+  const volStr = String(volNum).padStart(2, "0");
+  const productJson = productSchema(manga, { volumeNumber: volNum });
+  const breadcrumbJson = breadcrumbSchema([
+    { name: "Inicio", url: "/" },
+    { name: "Catalogo", url: "/busca" },
+    { name: manga.title, url: `/manga/${mangaId}` },
+    { name: `Volume ${volStr}`, url: `/manga/${mangaId}/volume/${volNum}` },
+  ]);
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(productJson) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJson) }}
+      />
       <Header />
 
       <VolumeProductHero

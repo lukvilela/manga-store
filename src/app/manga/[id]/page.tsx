@@ -6,6 +6,7 @@ import MangaStats from "@/components/MangaStats";
 import MangaSynopsis from "@/components/MangaSynopsis";
 import MangaVolumes from "@/components/MangaVolumes";
 import MangaCarousel from "@/components/MangaCarousel";
+import Newsletter from "@/components/Newsletter";
 import SocialMetrics from "@/components/social/SocialMetrics";
 import ReviewsSection from "@/components/reviews/ReviewsSection";
 import PreorderBanner from "@/components/discovery/PreorderBanner";
@@ -15,6 +16,7 @@ import { getMangaRecommendations, toCardData } from "@/lib/manga-api";
 import { getMangaByIdWithPtSynopsis } from "@/lib/manga-api-pt";
 import { getPreorder } from "@/lib/preorders-mock";
 import { getBoxSet } from "@/lib/box-sets";
+import { productSchema, breadcrumbSchema, jsonLdScript } from "@/lib/structured-data";
 
 // Bloco isolado pra streaming via Suspense: hero/stats/sinopse aparecem
 // imediatamente e o carrossel de recomendacoes chega depois com skeleton.
@@ -68,8 +70,24 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
     titleEnglish: manga.title_english,
   };
 
+  // Structured data: Product + Breadcrumb (Home > Catalogo > Manga)
+  const productJson = productSchema(manga);
+  const breadcrumbJson = breadcrumbSchema([
+    { name: "Inicio", url: "/" },
+    { name: "Catalogo", url: "/busca" },
+    { name: manga.title, url: `/manga/${manga.mal_id}` },
+  ]);
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(productJson) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJson) }}
+      />
       <Header />
       <MangaDetailHero manga={heroData} />
       {manga.publishing && (
@@ -111,6 +129,18 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
       <Suspense fallback={<CarrosselSkeleton count={6} showHeader />}>
         <Recommendations mangaId={mangaId} />
       </Suspense>
+
+      {/* Newsletter capta engajamento pos-recomendacoes */}
+      <section className="px-4 md:px-8 py-12 border-t border-[var(--line)]">
+        <div className="max-w-5xl mx-auto">
+          <Newsletter
+            variant="compact"
+            title={`Mais como ${manga.title}?`}
+            jpTitle="もっと"
+            subtitle="Receba indicacoes parecidas direto na sua caixa."
+          />
+        </div>
+      </section>
 
       <footer className="relative border-t-4 border-akira-red py-12 px-4 md:px-8 overflow-hidden">
         <div className="absolute inset-0 halftone-lg opacity-25 pointer-events-none" aria-hidden />

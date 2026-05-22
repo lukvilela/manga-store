@@ -11,6 +11,7 @@ import {
   type EstanteStatus,
 } from "@/lib/estante-store";
 import { searchManga } from "@/lib/manga-api";
+import ShareListModal from "@/components/share/ShareListModal";
 
 type TabDef = {
   status: EstanteStatus;
@@ -58,6 +59,7 @@ export default function EstantePage() {
   const estante = useEstante();
   const [activeTab, setActiveTab] = useState<EstanteStatus>("reading");
   const [showAdd, setShowAdd] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/conta/estante");
@@ -131,13 +133,26 @@ export default function EstantePage() {
           })}
         </div>
 
-        <button
-          onClick={() => setShowAdd(true)}
-          className="shimmer inline-flex items-center gap-3 border-[3px] border-[var(--ink)] bg-[var(--akira-red)] text-[var(--ink)] px-5 py-3 shadow-hard hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
-        >
-          <span className="display text-sm uppercase tracking-wider">+ Adicionar</span>
-          <span className="jp text-sm">追加</span>
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowShare(true)}
+            disabled={list.length === 0}
+            title={list.length === 0 ? "Adicione mangas pra compartilhar" : `Compartilhar ${list.length} item(s)`}
+            className="inline-flex items-center gap-2 border-[3px] border-[var(--ink)] bg-[var(--bg-3)] text-[var(--ink)] px-4 py-3 shadow-hard hover:bg-[var(--akira-cyan)] hover:text-[var(--bg)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-3)] disabled:hover:text-[var(--ink)]"
+          >
+            <span aria-hidden>{"🔗"}</span>
+            <span className="display text-sm uppercase tracking-wider">Compartilhar</span>
+            <span className="jp text-sm">共有</span>
+          </button>
+
+          <button
+            onClick={() => setShowAdd(true)}
+            className="shimmer inline-flex items-center gap-3 border-[3px] border-[var(--ink)] bg-[var(--akira-red)] text-[var(--ink)] px-5 py-3 shadow-hard hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+          >
+            <span className="display text-sm uppercase tracking-wider">+ Adicionar</span>
+            <span className="jp text-sm">追加</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid de items */}
@@ -179,6 +194,14 @@ export default function EstantePage() {
             setShowAdd(false);
             setActiveTab(status);
           }}
+        />
+      )}
+
+      {showShare && (
+        <ShareListModal
+          items={list}
+          status={activeTab}
+          onClose={() => setShowShare(false)}
         />
       )}
     </div>

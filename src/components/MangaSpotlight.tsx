@@ -46,10 +46,10 @@ export default function MangaSpotlight({ manga, label = "Featured Drop", jpLabel
       <div className={`relative max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center ${reverse ? "md:[direction:rtl]" : ""}`}>
         {/* Capa grande */}
         <div className={`md:col-span-5 ${reverse ? "md:order-2" : ""} [direction:ltr]`}>
-          <Link href={`/manga/${manga.id}`} className="block group">
+          <Link href={`/manga/${manga.id}`} className="block group hover-tilt">
             <div
               className="relative aspect-[2/3] max-w-md mx-auto md:mx-0 overflow-hidden border-4 border-ink shadow-hard-lg transition-transform duration-700 group-hover:rotate-1"
-              style={{ background: color }}
+              style={{ background: color, viewTransitionName: `cover-${manga.id}` }}
             >
               {manga.cover && (
                 <Image

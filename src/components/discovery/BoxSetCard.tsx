@@ -22,7 +22,7 @@ export default function BoxSetCard({ boxSet, coverUrl }: Props) {
 
   return (
     <article
-      className="relative panel-frame overflow-hidden"
+      className="relative panel-frame overflow-hidden hover-tilt"
       style={{
         background: `
           radial-gradient(ellipse 70% 60% at 0% 0%, ${colorSoft} 0%, transparent 65%),
