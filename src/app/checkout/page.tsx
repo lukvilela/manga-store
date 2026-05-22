@@ -1,33 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { lookupCep } from "@/lib/viacep";
 
-const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+import CheckoutStepper from "@/components/checkout/CheckoutStepper";
+import OrderSummary from "@/components/checkout/OrderSummary";
+import StepIdentification, { type IdentificationData } from "@/components/checkout/StepIdentification";
+import StepAddress, { type AddressData } from "@/components/checkout/StepAddress";
+import StepShippingPayment, {
+  type ShippingPaymentData,
+} from "@/components/checkout/StepShippingPayment";
+import StepConfirmation from "@/components/checkout/StepConfirmation";
 
-type Address = {
-  cep: string;
-  street: string;
-  number: string;
-  complement: string;
-  district: string;
-  city: string;
-  state: string;
+const SHIPPING_PRICES: Record<ShippingPaymentData["shipping"], number> = {
+  PAC: 15.9,
+  SEDEX: 24.9,
+  PICKUP: 0,
 };
 
-type PaymentMethod = "PIX" | "CREDIT_CARD" | "BOLETO";
-
 export default function CheckoutPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { items, total, clear } = useCart();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const { items, total, count, clear } = useCart();
 
-  const [address, setAddress] = useState<Address>({
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  const [identification, setIdentification] = useState<IdentificationData>({
+    mode: "logged",
+    name: "",
+    email: "",
+  });
+
+  const [address, setAddress] = useState<AddressData>({
     cep: "",
     street: "",
     number: "",
@@ -36,306 +44,183 @@ export default function CheckoutPage() {
     city: "",
     state: "",
   });
-  const [cepLoading, setCepLoading] = useState(false);
-  const [cepError, setCepError] = useState("");
-  const [payment, setPayment] = useState<PaymentMethod>("PIX");
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
 
+  const [shippingPayment, setShippingPayment] = useState<ShippingPaymentData>({
+    shipping: "PAC",
+    payment: "PIX",
+    installments: 1,
+  });
+
+  // Hidrata identificacao quando user carregar
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login?redirect=/checkout");
+    if (user) {
+      setIdentification((prev) =>
+        prev.name || prev.email
+          ? prev
+          : { mode: "logged", name: user.name, email: user.email }
+      );
+    } else if (!authLoading) {
+      setIdentification((prev) => ({ ...prev, mode: "guest" }));
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
+  // Carrinho vazio => /carrinho
   useEffect(() => {
-    if (!authLoading && items.length === 0 && !success) {
+    if (!authLoading && count === 0 && !redirecting) {
       router.replace("/carrinho");
     }
-  }, [items, authLoading, router, success]);
+  }, [count, authLoading, router, redirecting]);
 
-  const handleCepBlur = async () => {
-    const cleaned = address.cep.replace(/\D/g, "");
-    if (cleaned.length !== 8) return;
-    setCepLoading(true);
-    setCepError("");
+  const shippingPrice = SHIPPING_PRICES[shippingPayment.shipping];
+  const discount =
+    shippingPayment.payment === "PIX"
+      ? total * 0.05
+      : shippingPayment.payment === "BOLETO"
+        ? total * 0.03
+        : 0;
+  const totalFinal = total + shippingPrice - discount;
 
-    const result = await lookupCep(cleaned);
-    setCepLoading(false);
+  const paymentLabel = useMemo(() => {
+    if (shippingPayment.payment === "PIX") return "PIX 5%";
+    if (shippingPayment.payment === "BOLETO") return "Boleto 3%";
+    return undefined;
+  }, [shippingPayment.payment]);
 
-    if (!result) {
-      setCepError("CEP não encontrado.");
-      return;
+  // ===== HANDLER FINAL =====
+  const handleFinalSubmit = async () => {
+    setSubmitting(true);
+    setRedirecting(true);
+
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    const payload = {
+      orderId,
+      identification,
+      address,
+      shipping: shippingPayment.shipping,
+      payment: shippingPayment.payment,
+      installments: shippingPayment.installments,
+      items,
+      totals: { subtotal: total, shipping: shippingPrice, discount, total: totalFinal },
+      createdAt: new Date().toISOString(),
+    };
+
+    // mock persist na session (pagina sucesso le)
+    try {
+      sessionStorage.setItem(`order:${orderId}`, JSON.stringify(payload));
+    } catch {
+      // ignore
     }
 
-    setAddress((prev) => ({
-      ...prev,
-      street: result.logradouro,
-      district: result.bairro,
-      city: result.localidade,
-      state: result.uf,
-    }));
-  };
+    // mock processamento
+    await new Promise((r) => setTimeout(r, 1000));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSubmitting(false);
-    setSuccess(true);
     clear();
+    router.push(`/pedido/${orderId}`);
   };
 
   if (authLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f3f4f6]">
-        <p className="text-gray-400">Carregando...</p>
-      </main>
-    );
-  }
-
-  if (success) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f3f4f6] px-4 py-10">
-        <div className="mx-auto max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">
-            ✓
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedido realizado!</h1>
-          <p className="mt-3 text-gray-600">
-            Obrigado, <strong>{user?.name}</strong>! Seu pedido foi confirmado e será enviado em breve.
-          </p>
-          <Link
-            href="/"
-            className="mt-8 inline-block rounded-xl bg-[#111827] px-6 py-3 text-sm font-bold text-white hover:bg-gray-800"
-          >
-            Continuar comprando
-          </Link>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
+        <div className="flex flex-col items-center gap-3">
+          <span className="display text-3xl text-[var(--akira-red)] glow-red pulse-neon">CARREGANDO</span>
+          <span className="jp text-sm text-[var(--ink-muted)]">読み込み中</span>
         </div>
       </main>
     );
   }
 
-  const frete = total >= 150 ? 0 : 19.9;
-  const desconto = payment === "PIX" ? total * 0.05 : payment === "BOLETO" ? total * 0.03 : 0;
-  const totalFinal = total + frete - desconto;
-
-  const paymentOptions: { value: PaymentMethod; label: string; desc: string }[] = [
-    { value: "PIX", label: "PIX", desc: "5% de desconto — aprovação imediata" },
-    { value: "CREDIT_CARD", label: "Cartão de crédito", desc: "Até 12x sem juros" },
-    { value: "BOLETO", label: "Boleto bancário", desc: "3% de desconto — vence em 3 dias" },
-  ];
+  if (count === 0) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
+        <span className="font-mono text-sm text-[var(--ink-muted)] uppercase tracking-widest">
+          {">"} redirecionando...
+        </span>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[#f3f4f6]">
-      {/* Page header */}
-      <div className="bg-[#dc2626] px-4 py-5 md:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <h1 className="text-2xl font-black uppercase tracking-widest text-white">Checkout</h1>
-          <Link
-            href="/carrinho"
-            className="rounded-full border border-white/30 bg-white/15 px-5 py-1.5 text-sm font-bold text-white hover:bg-white/25"
-          >
-            Voltar ao carrinho
-          </Link>
+    <main className="relative min-h-screen bg-[var(--bg)] bg-zone-warm">
+      {/* Hero / breadcrumb */}
+      <section className="relative overflow-hidden border-b-2 border-[var(--line)]">
+        <div className="absolute inset-0 halftone-red opacity-40" />
+        <div className="bike-streak top-1/2" style={{ animationDelay: "0.5s" }} />
+        <div className="relative mx-auto max-w-7xl px-4 py-10 md:px-6">
+          <div className="flex items-baseline gap-4">
+            <span className="eyebrow">/ checkout / 会計</span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-5">
+            <h1 className="display text-5xl md:text-7xl text-[var(--ink)] glow-red leading-none">
+              FECHAR PEDIDO
+            </h1>
+            <span className="jp text-2xl md:text-3xl text-[var(--akira-red)] glow-red">会計</span>
+          </div>
+          <p className="mt-3 max-w-xl font-mono text-xs text-[var(--ink-muted)] uppercase tracking-wider">
+            {">"} 4 etapas / processo seguro / Neo-Tokyo Manga Distribution
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="mx-auto max-w-6xl px-4 py-6 md:px-6">
-        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          {/* Lado esquerdo: endereço + pagamento */}
-          <div className="space-y-4">
-            {/* Endereço */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <h2 className="mb-5 text-lg font-bold">Endereço de entrega</h2>
+      {/* Stepper */}
+      <section className="border-b-2 border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
+          <CheckoutStepper current={step} />
+        </div>
+      </section>
 
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">CEP</label>
-                    <input
-                      type="text"
-                      value={address.cep}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, "").slice(0, 8);
-                        const formatted = v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5)}` : v;
-                        setAddress((p) => ({ ...p, cep: formatted }));
-                        setCepError("");
-                      }}
-                      onBlur={handleCepBlur}
-                      required
-                      placeholder="00000-000"
-                      className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                    />
-                    {cepLoading && <p className="mt-1 text-xs text-zinc-500">Buscando CEP...</p>}
-                    {cepError && <p className="mt-1 text-xs text-red-500">{cepError}</p>}
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Estado</label>
-                    <input
-                      type="text"
-                      value={address.state}
-                      onChange={(e) => setAddress((p) => ({ ...p, state: e.target.value }))}
-                      required
-                      placeholder="SP"
-                      className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Cidade</label>
-                  <input
-                    type="text"
-                    value={address.city}
-                    onChange={(e) => setAddress((p) => ({ ...p, city: e.target.value }))}
-                    required
-                    className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Bairro</label>
-                  <input
-                    type="text"
-                    value={address.district}
-                    onChange={(e) => setAddress((p) => ({ ...p, district: e.target.value }))}
-                    required
-                    className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Rua / Logradouro</label>
-                    <input
-                      type="text"
-                      value={address.street}
-                      onChange={(e) => setAddress((p) => ({ ...p, street: e.target.value }))}
-                      required
-                      className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Número</label>
-                    <input
-                      type="text"
-                      value={address.number}
-                      onChange={(e) => setAddress((p) => ({ ...p, number: e.target.value }))}
-                      required
-                      className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                    Complemento <span className="text-zinc-400">(opcional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={address.complement}
-                    onChange={(e) => setAddress((p) => ({ ...p, complement: e.target.value }))}
-                    placeholder="Apto, bloco, sala..."
-                    className="w-full rounded-xl rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Pagamento */}
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <h2 className="mb-5 text-lg font-bold">Forma de pagamento</h2>
-              <div className="space-y-3">
-                {paymentOptions.map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition ${
-                      payment === opt.value
-                        ? "border-zinc-900 bg-zinc-50"
-                        : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={opt.value}
-                      checked={payment === opt.value}
-                      onChange={() => setPayment(opt.value)}
-                      className="accent-zinc-900"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900">{opt.label}</p>
-                      <p className="text-xs text-zinc-500">{opt.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
+      {/* Grid principal */}
+      <section className="mx-auto max-w-7xl px-4 py-10 md:px-6">
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          {/* Coluna principal — step ativo */}
+          <div className="panel-frame bg-[var(--bg-2)] p-6 md:p-10">
+            {step === 1 && (
+              <StepIdentification
+                user={user}
+                value={identification}
+                onChange={setIdentification}
+                onNext={() => setStep(2)}
+              />
+            )}
+            {step === 2 && (
+              <StepAddress
+                value={address}
+                onChange={setAddress}
+                onNext={() => setStep(3)}
+                onBack={() => setStep(1)}
+              />
+            )}
+            {step === 3 && (
+              <StepShippingPayment
+                value={shippingPayment}
+                onChange={setShippingPayment}
+                subtotal={total}
+                onNext={() => setStep(4)}
+                onBack={() => setStep(2)}
+              />
+            )}
+            {step === 4 && (
+              <StepConfirmation
+                identification={identification}
+                address={address}
+                shippingPayment={shippingPayment}
+                shippingPrice={shippingPrice}
+                discount={discount}
+                totalFinal={totalFinal}
+                submitting={submitting}
+                onBack={() => setStep(3)}
+                onSubmit={handleFinalSubmit}
+              />
+            )}
           </div>
 
-          {/* Lado direito: resumo */}
-          <div className="space-y-4">
-            <div className="h-fit rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <h2 className="mb-5 text-lg font-bold">Resumo do pedido</h2>
-
-              <div className="mb-4 max-h-64 overflow-y-auto space-y-3 pr-1">
-                {items.map((item) => (
-                  <div key={item.volumeId} className="flex items-center gap-3">
-                    <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-black/5">
-                      <Image
-                        src={item.coverImage}
-                        alt={item.seriesTitle}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium">{item.seriesTitle}</p>
-                      <p className="text-xs text-zinc-500">Vol. {item.volumeNumber} × {item.quantity}</p>
-                    </div>
-                    <p className="text-sm font-semibold">{fmt.format(item.price * item.quantity)}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2 border-t border-gray-100 pt-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-zinc-600">Subtotal</span>
-                  <span>{fmt.format(total)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-600">Frete</span>
-                  {frete === 0 ? (
-                    <span className="font-semibold text-green-600">Grátis</span>
-                  ) : (
-                    <span>{fmt.format(frete)}</span>
-                  )}
-                </div>
-                {desconto > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Desconto ({payment === "PIX" ? "5%" : "3%"})</span>
-                    <span>- {fmt.format(desconto)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-[#eadfce] pt-3 text-base font-bold">
-                  <span>Total</span>
-                  <span>{fmt.format(totalFinal)}</span>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="mt-6 w-full rounded-xl bg-[#dc2626] px-4 py-3 text-sm font-black uppercase tracking-wider text-white transition hover:bg-[#b91c1c] disabled:opacity-60"
-              >
-                {submitting ? "Processando..." : "Concluir pedido"}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+          {/* Sidebar */}
+          <OrderSummary
+            shipping={step >= 3 ? shippingPrice : 0}
+            discount={step >= 3 ? discount : 0}
+            paymentLabel={step >= 3 ? paymentLabel : undefined}
+          />
+        </div>
+      </section>
     </main>
   );
 }

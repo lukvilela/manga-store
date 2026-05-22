@@ -1,29 +1,59 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bagel_Fat_One, Plus_Jakarta_Sans, JetBrains_Mono, Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
-import { Header } from "@/components/Header";
+import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/context/ToastContext";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const display = Bagel_Fat_One({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-display",
+  display: "swap",
+});
+
+const sans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const jp = Noto_Serif_JP({
+  subsets: ["latin"],
+  weight: ["400", "900"],
+  variable: "--font-jp",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Akira Mangas",
-  description:
-    "Loja oficial para colecionadores. Colecoes completas, capas reais por volume e um visual vibrante por obra.",
+  title: "MANGAVERSE — Neo-Tokyo Manga Store",
+  description: "Loja de mangas com vibe Akira. Catalogo via MyAnimeList, capas em alta, vibracao cyberpunk.",
+  openGraph: {
+    title: "MANGAVERSE — Neo-Tokyo Manga Store",
+    description: "Catalogo curado de mangas. Vibe Akira, Neo-Tokyo, cyberpunk.",
+    type: "website",
+    locale: "pt_BR",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <CartProvider>
-            <Header />
-            {children}
-          </CartProvider>
-        </AuthProvider>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} ${jp.variable} antialiased scanlines`}>
+        <div className="grain" aria-hidden />
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );
