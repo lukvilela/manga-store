@@ -1,163 +1,140 @@
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { SeriesRow } from "@/components/SeriesRow";
-import { MaisVendidosRow } from "@/components/MaisVendidosRow";
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import MangaCarousel from "@/components/MangaCarousel";
+import MangaSpotlight from "@/components/MangaSpotlight";
+import { getTopManga, getMangaByGenre, toCardData } from "@/lib/manga-api";
 
-export const dynamic = "force-dynamic";
+// Jikan genre IDs:
+// 1=Action 2=Adventure 4=Comedy 8=Drama 10=Fantasy
+// 22=Romance 24=Sci-Fi 27=Shounen 42=Seinen 25=Shoujo
+// 36=Slice 7=Mystery 14=Horror
+
+export const revalidate = 3600;
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export default async function Home() {
-  const allSeries = await prisma.mangaSeries.findMany({
-    where: { isActive: true },
-    include: {
-      volumes: {
-        where: { isActive: true },
-        orderBy: { number: "asc" },
-      },
-    },
-    orderBy: { title: "asc" },
-  });
+  // Sequencial — Jikan rate limit 3/sec
+  const topMangas = await getTopManga(20, "manga");
+  await sleep(400);
+  const shonen = await getMangaByGenre(27, 16);
+  await sleep(400);
+  const seinen = await getMangaByGenre(42, 16);
+  await sleep(400);
+  const fantasy = await getMangaByGenre(10, 16);
+  await sleep(400);
+  const horror = await getMangaByGenre(14, 12);
 
-  const series = allSeries.filter((s) => s.volumes.length > 0);
-  const totalVolumes = series.reduce((s, r) => s + r.volumes.length, 0);
-
-  const maisVendidos = series
-    .map((s) => (s.volumes[0] ? { serie: s, volume: s.volumes[0] } : null))
-    .filter(Boolean) as {
-    serie: (typeof series)[0];
-    volume: (typeof series)[0]["volumes"][0];
-  }[];
+  // Spotlights — top 3 do hall of fame
+  const spotlight1 = topMangas[0] ? toCardData(topMangas[0]) : null;
+  const spotlight2 = topMangas[1] ? toCardData(topMangas[1]) : null;
+  const spotlight3 = horror[0] ? toCardData(horror[0]) : null;
 
   return (
     <>
-      {/* ── HERO ── */}
-      <section className="bg-[#dc2626]">
-        <div className="mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-20">
-          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-20">
+      <Header />
+      <Hero />
 
-            {/* Texto principal */}
-            <div className="flex-1">
-              <span className="inline-block rounded-full border border-white/25 bg-white/10 px-4 py-1 text-[11px] font-bold uppercase tracking-[0.25em] text-white/70 mb-5">
-                Loja para Colecionadores
-              </span>
-              <h1 className="text-5xl font-black uppercase tracking-tight text-white md:text-7xl">
-                Akira<br />
-                <span className="text-white/90">Mangas</span>
-              </h1>
-              <p className="mt-5 max-w-sm text-base text-white/65 leading-relaxed">
-                Coleções completas com capas reais por volume. O catálogo definitivo para colecionadores de mangá.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="#colecoes"
-                  className="rounded-full bg-white px-7 py-3 text-sm font-black uppercase tracking-widest text-[#dc2626] hover:bg-red-50 shadow"
-                >
-                  Ver Coleções
-                </Link>
-                <Link
-                  href="/busca"
-                  className="rounded-full border border-white/30 px-7 py-3 text-sm font-bold uppercase tracking-widest text-white hover:bg-white/15"
-                >
-                  Catálogo
-                </Link>
-              </div>
-            </div>
+      {/* Spotlight #1 — Top do mês */}
+      {spotlight1 && (
+        <MangaSpotlight
+          manga={spotlight1}
+          label="Pick of the Month"
+          jpLabel="今月の一押し"
+        />
+      )}
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 lg:w-64 lg:flex-shrink-0">
-              {[
-                { n: String(series.length), label: "Séries" },
-                { n: `${totalVolumes}+`, label: "Volumes" },
-                { n: "100%", label: "Capas reais" },
-                { n: "Grátis", label: "Frete acima R$150" },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-2xl border border-white/15 bg-white/10 p-4"
-                >
-                  <span className="block text-2xl font-black text-white">{s.n}</span>
-                  <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-wider text-white/55">
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <MangaCarousel
+        title="Hall of Fame"
+        subtitle="Top Mangas"
+        jpTitle="殿堂入り"
+        mangas={topMangas.map(toCardData)}
+        accent="red"
+        size="md"
+      />
 
-      {/* ── MAIS VENDIDOS ── */}
-      <section className="bg-white px-4 py-10 md:px-6">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex items-center justify-between gap-4">
+      {/* Spotlight #2 — Outro destaque */}
+      {spotlight2 && (
+        <MangaSpotlight
+          manga={spotlight2}
+          label="Editor's Choice"
+          jpLabel="編集者選"
+          reverse
+        />
+      )}
+
+      <MangaCarousel
+        title="Shounen — Acao e Aventura"
+        subtitle="Shounen Battle"
+        jpTitle="少年バトル"
+        mangas={shonen.map(toCardData)}
+        accent="yellow"
+        size="md"
+      />
+
+      <MangaCarousel
+        title="Seinen — Maduro e Profundo"
+        subtitle="Seinen Dark"
+        jpTitle="青年ダーク"
+        mangas={seinen.map(toCardData)}
+        accent="cyan"
+        size="md"
+      />
+
+      <MangaCarousel
+        title="Mundos Fantasticos"
+        subtitle="Fantasy World"
+        jpTitle="幻想世界"
+        mangas={fantasy.map(toCardData)}
+        accent="violet"
+        size="md"
+      />
+
+      {/* Spotlight #3 — Dark/horror */}
+      {spotlight3 && (
+        <MangaSpotlight
+          manga={spotlight3}
+          label="Beware The Dark"
+          jpLabel="闇の警告"
+        />
+      )}
+
+      <MangaCarousel
+        title="Terror & Horror"
+        subtitle="Horror Show"
+        jpTitle="恐怖"
+        mangas={horror.map(toCardData)}
+        accent="pink"
+        size="md"
+      />
+
+      {/* Footer Akira-style */}
+      <footer className="relative border-t-4 border-akira-red mt-8 py-16 px-4 md:px-8 overflow-hidden">
+        <div className="absolute inset-0 halftone-lg opacity-30 pointer-events-none" aria-hidden />
+        <div className="bike-streak" style={{ top: "30%" }} />
+
+        <div className="relative max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-8">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#dc2626] mb-1">
-                Destaques
+              <p className="jp text-akira-red text-3xl font-black glow-red mb-2">アキラ</p>
+              <p className="display text-4xl md:text-5xl">
+                MANGA<span className="text-akira-red glow-red">VERSE</span>
+                <span className="text-akira-red">.</span>
               </p>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900">
-                Mais Vendidos
-              </h2>
+              <p className="jp text-base text-ink-muted mt-2">漫画ヴァース · Neo-Tokyo · 2026</p>
             </div>
-            <Link
-              href="/busca"
-              className="flex-shrink-0 rounded-full border border-[#dc2626] px-5 py-2 text-xs font-bold uppercase tracking-widest text-[#dc2626] hover:bg-[#dc2626] hover:text-white"
-            >
-              Ver tudo
-            </Link>
-          </div>
-          <MaisVendidosRow
-            items={maisVendidos.map((m) => ({
-              volumeId: m.volume.id,
-              seriesSlug: m.serie.slug,
-              seriesTitle: m.serie.title,
-              volumeNumber: m.volume.number,
-              price: Number(m.volume.price.toString()),
-              coverImage:
-                m.volume.coverImage ??
-                `/covers/${m.serie.slug}-vol-${m.volume.number}.svg`,
-            }))}
-          />
-        </div>
-      </section>
-
-      {/* ── BANNER COLEÇÕES ── */}
-      <section id="colecoes" className="bg-[#111827] px-4 py-4 md:px-6">
-        <div className="mx-auto max-w-7xl flex items-center justify-between gap-4">
-          <div className="flex items-baseline gap-4">
-            <h2 className="text-xl font-black uppercase tracking-tight text-white">
-              Nossas Coleções
-            </h2>
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
-              {series.length} séries · {totalVolumes} volumes
-            </span>
-          </div>
-          <Link
-            href="/busca"
-            className="flex-shrink-0 rounded-full border border-white/20 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/60 hover:bg-white/10 hover:text-white"
-          >
-            Ver catálogo
-          </Link>
-        </div>
-      </section>
-
-      {/* ── FILEIRAS POR SÉRIE ── */}
-      <div>
-        {series.map((serie) => (
-          <SeriesRow key={serie.slug} serie={serie} />
-        ))}
-      </div>
-
-      {/* ── RODAPÉ ── */}
-      <footer className="bg-[#111827] px-4 py-10 md:px-6">
-        <div className="mx-auto max-w-7xl flex flex-col items-center gap-4 text-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#dc2626] text-[10px] font-black uppercase tracking-widest text-white">
-              AK
+            <div className="flex gap-6 eyebrow flex-wrap">
+              <span className="text-akira-red glow-red text-xl">DOKI!</span>
+              <span className="text-akira-cyan glow-cyan text-xl">ZAP!</span>
+              <span className="text-akira-pink glow-pink text-xl">BAM!</span>
+              <span className="text-akira-yellow glow-yellow text-xl">KAPOW!</span>
+              <span className="text-akira-violet glow-violet text-xl">CRASH!</span>
             </div>
-            <span className="text-sm font-black uppercase tracking-widest text-white">Akira Mangas</span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/30">
-            © {new Date().getFullYear()} · Loja para Colecionadores
-          </p>
+          <div className="pt-6 border-t border-[var(--line)] flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
+            <p>© 2026 · Powered by Jikan API (MyAnimeList)</p>
+            <p>Made in <span className="text-akira-red">Brasil</span> · Inspired by <span className="text-akira-yellow">Otomo Katsuhiro</span></p>
+          </div>
         </div>
       </footer>
     </>
