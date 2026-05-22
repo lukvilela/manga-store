@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { lookupCep } from "@/lib/viacep";
+import { getLastCep } from "@/lib/last-cep";
 
 export type AddressData = {
   cep: string;
@@ -23,6 +24,48 @@ type Props = {
 export default function StepAddress({ value, onChange, onNext, onBack }: Props) {
   const [cepLoading, setCepLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof AddressData, string>>>({});
+  const hydratedRef = useRef(false);
+
+  // Hidrata CEP do localStorage se vazio (vindo da calculadora do /carrinho)
+  // e ja dispara lookup pra preencher rua/bairro/cidade/UF.
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (value.cep) return;
+    const last = getLastCep();
+    if (!last?.cep) return;
+    hydratedRef.current = true;
+
+    // Atualiza o CEP e os dados ja conhecidos do localStorage
+    onChange({
+      ...value,
+      cep: last.cep,
+      street: value.street || last.street || "",
+      district: value.district || last.district || "",
+      city: value.city || last.city || "",
+      state: value.state || last.uf || "",
+    });
+
+    // Se nao tem todos os campos resolvidos, dispara lookup
+    const cleaned = last.cep.replace(/\D/g, "");
+    if (cleaned.length === 8 && (!last.street || !last.city)) {
+      (async () => {
+        setCepLoading(true);
+        const result = await lookupCep(cleaned);
+        setCepLoading(false);
+        if (result) {
+          onChange({
+            ...value,
+            cep: last.cep,
+            street: result.logradouro || value.street,
+            district: result.bairro || value.district,
+            city: result.localidade || value.city,
+            state: result.uf || value.state,
+          });
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCepBlur = async () => {
     const cleaned = value.cep.replace(/\D/g, "");

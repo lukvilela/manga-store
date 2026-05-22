@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getMangaColor, getMangaColorAlpha } from "@/lib/manga-colors";
 import type { MangaCardData } from "@/lib/manga-api";
+import StockBadge from "./StockBadge";
 
 type Props = {
   manga: MangaCardData;
@@ -61,6 +62,11 @@ export default function MangaCard({ manga, size = "md" }: Props) {
               ★ {manga.score.toFixed(2)}
             </div>
           )}
+
+          {/* Chip "ULTIMAS" — so aparece pra ~8% dos cards (determinismo do hash) */}
+          <div className="absolute bottom-14 right-2 z-20">
+            <StockBadge volumeId={`${manga.id}-vol-1`} variant="chip" />
+          </div>
 
           {/* Title */}
           <div className="absolute inset-x-0 bottom-0 p-3 z-10">

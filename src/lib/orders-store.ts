@@ -2,12 +2,31 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export type OrderStatus = "pendente" | "confirmado" | "preparando" | "enviado" | "a_caminho" | "entregue";
+export type OrderStatus =
+  | "pendente"
+  | "confirmado"
+  | "preparando"
+  | "enviado"
+  | "a_caminho"
+  | "entregue"
+  | "cancelado"
+  | "devolvido";
+
+export type ReturnStatus = "solicitada" | "aprovada" | "concluida";
 
 export type StoredOrder = {
   orderId: string;
   trackingCode: string;
   createdAt: string; // ISO
+  paidAt?: string; // ISO — preenchido apos confirmacao mock do pagamento
+  // Cancelamento
+  cancelledAt?: string; // ISO — preenchido quando cliente cancela
+  cancelReason?: string;
+  // Devolucao
+  returnRequestedAt?: string; // ISO — quando cliente abriu pedido de devolucao
+  returnReason?: string;
+  returnItems?: string[]; // ids dos volumes a devolver
+  returnStatus?: ReturnStatus;
   identification: { name: string; email: string; mode: string };
   address: {
     cep: string;
@@ -69,6 +88,75 @@ export function getOrder(orderId: string): StoredOrder | null {
   return readAll().find((o) => o.orderId === orderId) ?? null;
 }
 
+// Cancela o pedido (mock). Define cancelledAt + motivo e dispara o event
+// pra UI atualizar imediatamente. Idempotente — chamar 2x nao reverte.
+export function cancelOrder(orderId: string, reason: string): StoredOrder | null {
+  const all = readAll();
+  const idx = all.findIndex((o) => o.orderId === orderId);
+  if (idx === -1) return null;
+  if (all[idx].cancelledAt) return all[idx]; // ja cancelado
+  const updated: StoredOrder = {
+    ...all[idx],
+    cancelledAt: new Date().toISOString(),
+    cancelReason: reason,
+  };
+  all[idx] = updated;
+  writeAll(all);
+  try {
+    sessionStorage.setItem(`order:${orderId}`, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+  return updated;
+}
+
+// Abre uma solicitacao de devolucao. Items opcional (default: todos os volumes).
+export function requestReturn(
+  orderId: string,
+  reason: string,
+  items?: string[]
+): StoredOrder | null {
+  const all = readAll();
+  const idx = all.findIndex((o) => o.orderId === orderId);
+  if (idx === -1) return null;
+  if (all[idx].returnRequestedAt) return all[idx]; // ja solicitado
+  const target = all[idx];
+  const updated: StoredOrder = {
+    ...target,
+    returnRequestedAt: new Date().toISOString(),
+    returnReason: reason,
+    returnItems: items && items.length > 0 ? items : target.items.map((i) => i.volumeId),
+    returnStatus: "solicitada",
+  };
+  all[idx] = updated;
+  writeAll(all);
+  try {
+    sessionStorage.setItem(`order:${orderId}`, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+  return updated;
+}
+
+// Marca o pedido como pago (mock). Quando paidAt e setado, a deriveStatus
+// passa a usar paidAt como ancora — entao o status pula direto pra "confirmado"
+// e evolui rapido pelas etapas seguintes (igual loja real apos checkout).
+export function markAsPaid(orderId: string): StoredOrder | null {
+  const all = readAll();
+  const idx = all.findIndex((o) => o.orderId === orderId);
+  if (idx === -1) return null;
+  const updated: StoredOrder = { ...all[idx], paidAt: new Date().toISOString() };
+  all[idx] = updated;
+  writeAll(all);
+  // sessionStorage legado tambem precisa do mirror
+  try {
+    sessionStorage.setItem(`order:${orderId}`, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+  return updated;
+}
+
 // Gera codigo de rastreio mock no padrao Correios: AK123456789BR
 export function generateTrackingCode(orderId: string): string {
   let hash = 0;
@@ -108,22 +196,35 @@ const TIMELINE_MIN: Record<OrderStatus, number> = {
   enviado: 8,
   a_caminho: 15,
   entregue: 30,
+  // Estados terminais — nao entram na sequencia padrao, valor ignorado
+  cancelado: 0,
+  devolvido: 0,
 };
 
-export function deriveStatus(order: Pick<StoredOrder, "createdAt" | "shipping">): OrderStatus {
-  const ageMin = (Date.now() - new Date(order.createdAt).getTime()) / 60_000;
+export function deriveStatus(
+  order: Pick<StoredOrder, "createdAt" | "shipping" | "paidAt" | "cancelledAt" | "returnStatus">
+): OrderStatus {
+  // Cancelado e prioritario — nao importa o tempo
+  if (order.cancelledAt) return "cancelado";
+  // Devolucao concluida sobrepoe "entregue"
+  if (order.returnStatus === "concluida") return "devolvido";
+  // Se ja foi pago, ancora o tempo no paidAt — assim status pula direto
+  // pra "confirmado" no instante 0 e evolui pelas etapas seguintes.
+  // Se ainda nao foi pago, fica eternamente em "pendente" (aguarda checkout).
+  if (!order.paidAt) return "pendente";
+  const ageMin = (Date.now() - new Date(order.paidAt).getTime()) / 60_000;
   // PICKUP pula transito longo
   if (order.shipping === "PICKUP") {
-    if (ageMin < 1) return "pendente";
-    if (ageMin < 3) return "confirmado";
-    if (ageMin < 8) return "preparando";
+    if (ageMin < 2) return "confirmado";
+    if (ageMin < 5) return "preparando";
     return "entregue"; // pronto pra retirar
   }
-  let current: OrderStatus = "pendente";
-  for (const s of STATUS_SEQUENCE) {
-    if (ageMin >= TIMELINE_MIN[s]) current = s;
-  }
-  return current;
+  // Mapeia tempo desde pagamento em status (pago = ja confirmado)
+  if (ageMin < 2) return "confirmado";
+  if (ageMin < 5) return "preparando";
+  if (ageMin < 10) return "enviado";
+  if (ageMin < 20) return "a_caminho";
+  return "entregue";
 }
 
 // Timeline para UI: lista de etapas com timestamps absolutos
@@ -144,11 +245,46 @@ const STATUS_META: Record<OrderStatus, { label: string; kanji: string; descripti
   enviado: { label: "Despachado", kanji: "発", description: "Postado nos Correios — rastreio liberado", color: "var(--akira-violet)" },
   a_caminho: { label: "A caminho", kanji: "走", description: "Em transito ate seu endereco", color: "var(--akira-red)" },
   entregue: { label: "Entregue", kanji: "届", description: "Chegou ao destinatario", color: "var(--akira-green)" },
+  cancelado: { label: "Cancelado", kanji: "中止", description: "Pedido cancelado pelo cliente", color: "var(--ink-muted)" },
+  devolvido: { label: "Devolvido", kanji: "返品", description: "Produto devolvido — reembolso processado", color: "var(--ink-muted)" },
 };
 
-export function buildTimeline(order: Pick<StoredOrder, "createdAt" | "shipping">): TimelineEntry[] {
+export function buildTimeline(
+  order: Pick<StoredOrder, "createdAt" | "shipping" | "paidAt" | "cancelledAt" | "returnStatus">
+): TimelineEntry[] {
   const current = deriveStatus(order);
   const createdMs = new Date(order.createdAt).getTime();
+
+  // Pedido cancelado: timeline curta — recebimento + cancelado
+  if (current === "cancelado") {
+    const cancelMs = order.cancelledAt ? new Date(order.cancelledAt).getTime() : Date.now();
+    const pendMeta = STATUS_META.pendente;
+    const cancMeta = STATUS_META.cancelado;
+    return [
+      {
+        status: "pendente",
+        label: pendMeta.label,
+        kanji: pendMeta.kanji,
+        description: pendMeta.description,
+        timestamp: new Date(createdMs),
+        completed: true,
+        current: false,
+      },
+      {
+        status: "cancelado",
+        label: cancMeta.label,
+        kanji: cancMeta.kanji,
+        description: cancMeta.description,
+        timestamp: new Date(cancelMs),
+        completed: true,
+        current: true,
+      },
+    ];
+  }
+
+  // Ancora o resto da timeline em paidAt (se houver). Antes de pagar,
+  // tudo fica relativo a createdAt mas marcado como nao concluido.
+  const paidMs = order.paidAt ? new Date(order.paidAt).getTime() : null;
   const sequence: OrderStatus[] =
     order.shipping === "PICKUP"
       ? ["pendente", "confirmado", "preparando", "entregue"]
@@ -157,12 +293,14 @@ export function buildTimeline(order: Pick<StoredOrder, "createdAt" | "shipping">
   return sequence.map((s) => {
     const meta = STATUS_META[s];
     const minutes = TIMELINE_MIN[s];
+    // "pendente" usa createdAt; demais usam paidAt (se pago)
+    const anchor = s === "pendente" ? createdMs : paidMs ?? createdMs;
     return {
       status: s,
       label: meta.label,
       kanji: meta.kanji,
       description: meta.description,
-      timestamp: new Date(createdMs + minutes * 60_000),
+      timestamp: new Date(anchor + (s === "pendente" ? 0 : minutes) * 60_000),
       completed: STATUS_SEQUENCE.indexOf(s) <= STATUS_SEQUENCE.indexOf(current),
       current: s === current,
     };
