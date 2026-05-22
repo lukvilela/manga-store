@@ -120,7 +120,15 @@ export default function StepConfirmation({
 
         {/* Disclaimer */}
         <p className="border-l-4 border-[var(--akira-yellow)] bg-[var(--bg-2)] px-4 py-3 text-xs text-[var(--ink-soft)]">
-          Ao finalizar voce concorda com os termos e politica de privacidade. Pedido sera processado em segundos.
+          Ao finalizar voce concorda com os termos e politica de privacidade. Em seguida voce sera redirecionado para a tela de{" "}
+          <span className="font-bold text-[var(--akira-red)]">
+            {shippingPayment.payment === "PIX"
+              ? "PIX · QR + copia-e-cola"
+              : shippingPayment.payment === "BOLETO"
+                ? "boleto · codigo de barras"
+                : "cartao · processamento seguro"}
+          </span>
+          .
         </p>
       </div>
 
@@ -151,8 +159,8 @@ export default function StepConfirmation({
             </>
           ) : (
             <>
-              <span className="display text-xl uppercase tracking-wider">Finalizar Pedido</span>
-              <span className="jp text-base">完了</span>
+              <span className="display text-xl uppercase tracking-wider">Ir para pagamento</span>
+              <span className="jp text-base">支払</span>
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="square" d="M5 12h14M13 6l6 6-6 6" />
               </svg>

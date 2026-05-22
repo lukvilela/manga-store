@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useCart } from "@/context/CartContext";
 import CartItemRow from "@/components/CartItemRow";
 import CartSummary from "@/components/CartSummary";
+import ShippingCalculator from "@/components/cart/ShippingCalculator";
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -78,8 +79,13 @@ export default function CartContent({ emptyState }: Props) {
               ))}
             </div>
 
+            {/* Calculadora de frete pre-checkout */}
+            <div className="mt-8">
+              <ShippingCalculator />
+            </div>
+
             {/* Footer da lista — confianca extra */}
-            <div className="mt-8 p-4 bg-bg-2 border-2 border-dashed border-line text-center">
+            <div className="mt-6 p-4 bg-bg-2 border-2 border-dashed border-line text-center">
               <p className="text-xs font-mono text-ink-muted">
                 <span className="text-akira-cyan">★</span> Sua compra protegida.
                 Devolucao gratuita em 7 dias <span className="text-akira-cyan">★</span>

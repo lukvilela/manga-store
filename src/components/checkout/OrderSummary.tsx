@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import { formatCouponLabel } from "@/lib/coupons-store";
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -9,11 +10,18 @@ type Props = {
   shipping?: number;
   discount?: number;
   paymentLabel?: string;
+  // Desconto adicional do cupom (separado do desconto de metodo de pagamento)
+  couponAmount?: number;
 };
 
-export default function OrderSummary({ shipping = 0, discount = 0, paymentLabel }: Props) {
-  const { items, total, count } = useCart();
-  const totalFinal = total + shipping - discount;
+export default function OrderSummary({
+  shipping = 0,
+  discount = 0,
+  paymentLabel,
+  couponAmount = 0,
+}: Props) {
+  const { items, total, count, coupon } = useCart();
+  const totalFinal = Math.max(0, total + shipping - discount - couponAmount);
 
   return (
     <aside className="sticky top-24 self-start">
@@ -70,6 +78,17 @@ export default function OrderSummary({ shipping = 0, discount = 0, paymentLabel 
             <div className="flex justify-between text-[var(--akira-cyan)]">
               <span>Desconto {paymentLabel ? `(${paymentLabel})` : ""}</span>
               <span className="font-mono numerals">- {fmt.format(discount)}</span>
+            </div>
+          )}
+          {coupon && (couponAmount > 0 || coupon.discount.kind === "free_shipping") && (
+            <div className="flex justify-between text-[var(--akira-green)]">
+              <span>
+                Cupom <span className="font-mono">{coupon.code}</span>{" "}
+                <span className="text-[10px] opacity-80">({formatCouponLabel(coupon)})</span>
+              </span>
+              <span className="font-mono numerals">
+                {couponAmount > 0 ? `- ${fmt.format(couponAmount)}` : "FRETE"}
+              </span>
             </div>
           )}
 

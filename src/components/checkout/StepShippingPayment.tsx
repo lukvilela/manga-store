@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { calcShippingQuotes, getZoneName, type ShippingQuote } from "@/lib/shipping";
+import { useCart } from "@/context/CartContext";
 
 export type ShippingMethod = "PAC" | "SEDEX" | "PICKUP";
 export type PaymentMethod = "PIX" | "CREDIT_CARD" | "BOLETO";
@@ -41,6 +42,8 @@ export default function StepShippingPayment({
   onNext,
   onBack,
 }: Props) {
+  const { coupon, couponFreeShipping } = useCart();
+
   const quotes: ShippingQuote[] = useMemo(
     () => calcShippingQuotes({ uf, cep, subtotal, weightKg: 0.3 + itemCount * 0.2 }),
     [uf, cep, subtotal, itemCount]
@@ -92,10 +95,22 @@ export default function StepShippingPayment({
             </span>
           )}
         </div>
+
+        {couponFreeShipping && coupon && (
+          <div className="mb-4 border-[2px] border-[var(--akira-green)] bg-[var(--akira-green)]/10 px-4 py-3">
+            <p className="font-mono text-xs text-[var(--akira-green)] uppercase tracking-widest flex items-center gap-2">
+              <span className="pulse-neon">●</span> CUPOM{" "}
+              <span className="font-bold">{coupon.code}</span> · FRETE GRATIS APLICADO
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-3">
           {quotes.map((opt) => {
             const active = value.shipping === opt.method;
             const disabled = !opt.available;
+            const couponZeroed = couponFreeShipping && opt.price > 0;
+            const displayPrice = couponZeroed ? 0 : opt.price;
             return (
               <label
                 key={opt.method}
@@ -138,10 +153,15 @@ export default function StepShippingPayment({
                   )}
                 </div>
                 <div className="text-right">
-                  {opt.price === 0 ? (
+                  {displayPrice === 0 ? (
                     <span className="display text-xl text-[var(--akira-green)] glow-green">GRATIS</span>
                   ) : (
-                    <span className="display text-xl text-[var(--ink)] numerals">{fmt.format(opt.price)}</span>
+                    <span className="display text-xl text-[var(--ink)] numerals">{fmt.format(displayPrice)}</span>
+                  )}
+                  {couponZeroed && (
+                    <p className="font-mono text-[9px] text-[var(--akira-green)] uppercase tracking-widest mt-0.5">
+                      cupom
+                    </p>
                   )}
                 </div>
                 {active && !disabled && (

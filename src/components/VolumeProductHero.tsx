@@ -4,6 +4,8 @@ import { getMangaColor, getMangaColorAlpha, getContrastText } from "@/lib/manga-
 import { getVolumeCoverByTitleAndNumber } from "@/lib/mangadex-api";
 import type { MangaCardData } from "@/lib/manga-api";
 import AddToCartForm from "./AddToCartForm";
+import StockBadge from "./StockBadge";
+import { getStockLevel } from "@/lib/stock-mock";
 
 type Props = {
   manga: MangaCardData & {
@@ -44,6 +46,9 @@ export default async function VolumeProductHero({
 
   const volStr = String(volumeNumber).padStart(2, "0");
   const slug = slugify(manga.title);
+  const volumeId = `${slug}-vol-${volumeNumber}`;
+  // Resolve estoque no servidor pra evitar flash visual e passar maxQty ao form
+  const stock = getStockLevel(volumeId);
 
   // Tenta buscar capa REAL do volume especifico (MangaDex, cache 24h).
   // Se nao achar, fica null e a UI cai no fluxo antigo (capa da serie + numero gigante).
@@ -163,7 +168,9 @@ export default async function VolumeProductHero({
           <div className="mt-4 max-w-md mx-auto md:mx-0 flex items-center gap-2 px-3 py-2 bg-black/40 border-2 border-akira-cyan/70">
             <span className="pulse-neon w-2 h-2 rounded-full bg-akira-cyan shrink-0" />
             <p className="text-[11px] font-mono uppercase tracking-widest text-akira-cyan">
-              Em estoque · entrega em 3-5 dias
+              {stock.level === "out_of_stock"
+                ? "Esgotado · avise-me quando chegar"
+                : "Pronta entrega · 3-5 dias uteis"}
             </p>
           </div>
         </div>
@@ -266,7 +273,7 @@ export default async function VolumeProductHero({
               </p>
             </div>
 
-            <div className="flex items-end gap-3 mb-4">
+            <div className="flex items-end gap-3 mb-3">
               <p className="display text-5xl md:text-6xl text-akira-red glow-red numerals leading-none">
                 {fmtBRL.format(price)}
               </p>
@@ -275,13 +282,20 @@ export default async function VolumeProductHero({
               </p>
             </div>
 
+            {/* Badge de estoque — visivel em toda loja BR, da urgencia */}
+            <div className="mb-4">
+              <StockBadge volumeId={volumeId} hideNotifyCta />
+            </div>
+
             <AddToCartForm
-              volumeId={`${slug}-vol-${volumeNumber}`}
+              volumeId={volumeId}
               seriesSlug={slug}
               seriesTitle={manga.title}
               volumeNumber={volumeNumber}
               price={price}
               coverImage={heroImage ?? manga.cover}
+              maxUnits={stock.units}
+              outOfStock={stock.level === "out_of_stock"}
             />
 
             {/* Ler preview — abre rota /ler com leitor mock */}

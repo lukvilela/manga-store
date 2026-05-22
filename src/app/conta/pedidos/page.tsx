@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import PostPurchaseReviewCTA from "@/components/order/PostPurchaseReviewCTA";
 import {
   deriveStatus,
   getStatusMeta,
@@ -32,6 +33,8 @@ const FILTERS: StatusFilter[] = [
   "enviado",
   "a_caminho",
   "entregue",
+  "cancelado",
+  "devolvido",
 ];
 
 const FILTER_LABEL: Record<StatusFilter, string> = {
@@ -42,6 +45,8 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
   enviado: "enviado",
   a_caminho: "a caminho",
   entregue: "entregue",
+  cancelado: "cancelado",
+  devolvido: "devolvido",
 };
 
 export default function PedidosPage() {
@@ -69,6 +74,9 @@ export default function PedidosPage() {
 
   return (
     <div className="space-y-8">
+      {/* CTA pos-compra — so aparece se ha volumes entregues nao avaliados */}
+      <PostPurchaseReviewCTA />
+
       {/* Header secao */}
       <header className="border-b-2 border-[var(--line)] pb-5">
         <p className="eyebrow">Section 02 // 履歴</p>

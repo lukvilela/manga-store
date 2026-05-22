@@ -15,11 +15,12 @@ import StepShippingPayment, {
 import StepConfirmation from "@/components/checkout/StepConfirmation";
 import { calcShippingQuotes } from "@/lib/shipping";
 import { persistOrder, generateTrackingCode, type StoredOrder } from "@/lib/orders-store";
+import { computeCouponDiscount, markCouponUsed } from "@/lib/coupons-store";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { items, total, count, clear } = useCart();
+  const { items, total, count, clear, coupon } = useCart();
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -79,9 +80,16 @@ export default function CheckoutPage() {
     [address.state, address.cep, total, count]
   );
   const currentQuote = quotes.find((q) => q.method === shippingPayment.shipping);
-  const shippingPrice = currentQuote?.available ? currentQuote.price : 0;
+  const baseShippingPrice = currentQuote?.available ? currentQuote.price : 0;
   const shippingEtaDays = currentQuote?.etaDays ?? 7;
   const shippingLabel = currentQuote?.label ?? shippingPayment.shipping;
+
+  // Cupom — pode zerar frete e/ou descontar subtotal
+  const { amountOff: couponAmount, freeShipping: couponFreeShipping } = computeCouponDiscount(
+    coupon,
+    total
+  );
+  const shippingPrice = couponFreeShipping ? 0 : baseShippingPrice;
 
   const discount =
     shippingPayment.payment === "PIX"
@@ -89,7 +97,7 @@ export default function CheckoutPage() {
       : shippingPayment.payment === "BOLETO"
         ? total * 0.03
         : 0;
-  const totalFinal = total + shippingPrice - discount;
+  const totalFinal = Math.max(0, total + shippingPrice - discount - couponAmount);
 
   const paymentLabel = useMemo(() => {
     if (shippingPayment.payment === "PIX") return "PIX 5%";
@@ -122,7 +130,12 @@ export default function CheckoutPage() {
         price: it.price,
         coverImage: it.coverImage,
       })),
-      totals: { subtotal: total, shipping: shippingPrice, discount, total: totalFinal },
+      totals: {
+        subtotal: total,
+        shipping: shippingPrice,
+        discount: discount + couponAmount,
+        total: totalFinal,
+      },
       createdAt: new Date().toISOString(),
     };
 
@@ -134,11 +147,20 @@ export default function CheckoutPage() {
       // ignore
     }
 
-    // mock processamento
-    await new Promise((r) => setTimeout(r, 1000));
+    // Marca cupom como usado (so afeta cupons de resgate; fixos sao reutilizaveis)
+    if (coupon) {
+      markCouponUsed(coupon.code, orderId);
+    }
 
+    // mock processamento curto (criacao do pedido no backend)
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Limpa o carrinho — o pedido ja esta persistido como "pendente".
+    // O proximo passo (tela de pagamento) so muda o paidAt do pedido.
     clear();
-    router.push(`/pedido/${orderId}`);
+    // Sempre vai pra /pagamento/[id]; se ja estiver pago (caso usuario volte),
+    // a pagina mostra atalho pra /pedido/[id].
+    router.push(`/pagamento/${orderId}`);
   };
 
   if (authLoading) {
@@ -244,6 +266,7 @@ export default function CheckoutPage() {
             shipping={step >= 3 ? shippingPrice : 0}
             discount={step >= 3 ? discount : 0}
             paymentLabel={step >= 3 ? paymentLabel : undefined}
+            couponAmount={couponAmount}
           />
         </div>
       </section>

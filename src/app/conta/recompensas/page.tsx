@@ -164,6 +164,10 @@ type Redemption = {
   code: string;
   date: string;
   priceAtRedemption: number;
+  // Campos opcionais novos — preenchidos quando o cupom e usado no checkout.
+  // Compat com items antigos salvos sem esses campos.
+  usedAt?: string;
+  usedInOrder?: string;
 };
 
 const REDEMPTIONS_KEY = "akira-mangas-redemptions";
@@ -184,6 +188,7 @@ function writeRedemptions(list: Redemption[]) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent("redemptions:change"));
   } catch {
     // ignore quota
   }
@@ -210,6 +215,13 @@ export default function RecompensasPage() {
 
   useEffect(() => {
     setRedemptions(readRedemptions());
+    const sync = () => setRedemptions(readRedemptions());
+    window.addEventListener("storage", sync);
+    window.addEventListener("redemptions:change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("redemptions:change", sync);
+    };
   }, []);
 
   const handleRedeem = (reward: Reward) => {
@@ -371,25 +383,77 @@ export default function RecompensasPage() {
           </p>
         ) : (
           <ul className="space-y-2">
-            {redemptions.map((r, idx) => (
-              <li
-                key={`${r.code}-${idx}`}
-                className="grid grid-cols-[1fr_auto] items-center gap-4 border-[2px] border-[var(--line)] bg-[var(--bg-3)] px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="display text-sm uppercase tracking-wider text-[var(--ink)] truncate">
-                    {r.name}
-                  </p>
-                  <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest mt-0.5">
-                    {new Date(r.date).toLocaleString("pt-BR")} ·{" "}
-                    <span className="text-[var(--akira-yellow)]">-{r.priceAtRedemption} pts</span>
-                  </p>
-                </div>
-                <code className="font-mono text-[11px] text-[var(--akira-cyan)] px-2 py-1 border border-[var(--akira-cyan)] whitespace-nowrap">
-                  {r.code}
-                </code>
-              </li>
-            ))}
+            {redemptions.map((r, idx) => {
+              const used = !!r.usedAt;
+              return (
+                <li
+                  key={`${r.code}-${idx}`}
+                  className={`grid grid-cols-[1fr_auto] items-center gap-4 border-[2px] px-4 py-3 ${
+                    used
+                      ? "border-[var(--line)] bg-[var(--bg-2)] opacity-60"
+                      : "border-[var(--line)] bg-[var(--bg-3)]"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p
+                      className={`display text-sm uppercase tracking-wider truncate ${
+                        used ? "text-[var(--ink-muted)] line-through" : "text-[var(--ink)]"
+                      }`}
+                    >
+                      {r.name}
+                    </p>
+                    <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest mt-0.5">
+                      {new Date(r.date).toLocaleString("pt-BR")} ·{" "}
+                      <span className="text-[var(--akira-yellow)]">-{r.priceAtRedemption} pts</span>
+                      {used && r.usedInOrder && (
+                        <>
+                          {" · "}
+                          <span className="text-[var(--akira-green)]">
+                            USADO em #{r.usedInOrder}
+                          </span>
+                        </>
+                      )}
+                      {used && !r.usedInOrder && (
+                        <>
+                          {" · "}
+                          <span className="text-[var(--akira-green)]">USADO</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {used ? (
+                      <span className="font-mono text-[10px] text-[var(--akira-green)] px-2 py-1 border border-[var(--akira-green)] uppercase tracking-widest whitespace-nowrap">
+                        usado
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(r.code).then(
+                            () => show(`Codigo ${r.code} copiado`, "success"),
+                            () => show("Nao foi possivel copiar", "error")
+                          );
+                        }}
+                        className="font-mono text-[10px] text-[var(--ink-muted)] hover:text-[var(--akira-cyan)] uppercase tracking-widest"
+                        aria-label="Copiar codigo"
+                      >
+                        copiar
+                      </button>
+                    )}
+                    <code
+                      className={`font-mono text-[11px] px-2 py-1 border whitespace-nowrap ${
+                        used
+                          ? "text-[var(--ink-muted)] border-[var(--line)] line-through"
+                          : "text-[var(--akira-cyan)] border-[var(--akira-cyan)]"
+                      }`}
+                    >
+                      {r.code}
+                    </code>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

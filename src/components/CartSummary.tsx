@@ -1,16 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useCart } from "@/context/CartContext";
+import CouponInput from "@/components/cart/CouponInput";
+import { formatCouponLabel } from "@/lib/coupons-store";
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-// Cupons mock — em prod isso vem do backend
-const CUPONS: Record<string, { desconto: number; rotulo: string }> = {
-  OTAKU10: { desconto: 0.1, rotulo: "10% OFF Otaku" },
-  BAKA: { desconto: 0.05, rotulo: "5% OFF Baka" },
-};
 
 const FRETE_GRATIS_MIN = 150;
 const FRETE_PADRAO = 15.9;
@@ -18,46 +14,20 @@ const FRETE_PADRAO = 15.9;
 /**
  * Resumo do pedido (sticky sidebar).
  *
- * Frete: gratis se subtotal >= R$150, senao R$15,90.
- * Cupons aceitos: OTAKU10 (10% off), BAKA (5% off).
- * Calculos locais — useCart fornece total/count.
+ * Frete: gratis se subtotal >= R$150 OU cupom de frete gratis, senao R$15,90.
+ * Cupons: gerenciados pelo CartContext via CouponInput (lib/coupons-store).
  */
 export default function CartSummary() {
-  const { total, count } = useCart();
-  const [cupomInput, setCupomInput] = useState("");
-  const [cupomAplicado, setCupomAplicado] = useState<keyof typeof CUPONS | null>(null);
-  const [cupomErro, setCupomErro] = useState<string | null>(null);
+  const { total, count, coupon, couponAmountOff, couponFreeShipping } = useCart();
 
-  const cupomData = cupomAplicado ? CUPONS[cupomAplicado] : null;
-  const desconto = cupomData ? total * cupomData.desconto : 0;
-  const subtotalComDesconto = total - desconto;
-  const frete = subtotalComDesconto >= FRETE_GRATIS_MIN ? 0 : FRETE_PADRAO;
+  const subtotalComDesconto = Math.max(0, total - couponAmountOff);
+  const fretePadraoAplicavel = subtotalComDesconto < FRETE_GRATIS_MIN;
+  const frete = couponFreeShipping ? 0 : fretePadraoAplicavel ? FRETE_PADRAO : 0;
   const totalFinal = subtotalComDesconto + frete;
 
-  // Quanto falta pra frete gratis
   const faltaFreteGratis = Math.max(0, FRETE_GRATIS_MIN - subtotalComDesconto);
   const progressoFrete = Math.min(100, (subtotalComDesconto / FRETE_GRATIS_MIN) * 100);
 
-  function aplicarCupom(e: React.FormEvent) {
-    e.preventDefault();
-    const code = cupomInput.trim().toUpperCase();
-    if (!code) return;
-    if (CUPONS[code]) {
-      setCupomAplicado(code as keyof typeof CUPONS);
-      setCupomErro(null);
-      setCupomInput("");
-    } else {
-      setCupomErro("Cupom invalido");
-      setCupomAplicado(null);
-    }
-  }
-
-  function removerCupom() {
-    setCupomAplicado(null);
-    setCupomErro(null);
-  }
-
-  // Selos confianca
   const selos = useMemo(
     () => [
       { jp: "安全", label: "Compra segura · SSL", color: "text-akira-green" },
@@ -81,8 +51,8 @@ export default function CartSummary() {
           </span>
         </div>
 
-        {/* Barra frete gratis */}
-        {frete > 0 ? (
+        {/* Barra frete gratis (so se cupom nao for free_shipping) */}
+        {!couponFreeShipping && frete > 0 ? (
           <div className="mb-5 p-3 bg-bg border border-line">
             <p className="text-xs text-ink-soft mb-2">
               Falta <span className="text-akira-yellow font-bold numerals">{fmt.format(faltaFreteGratis)}</span> pra <span className="text-akira-yellow">FRETE GRATIS</span>
@@ -105,22 +75,15 @@ export default function CartSummary() {
         {/* Linhas calculo */}
         <div className="space-y-2.5 text-sm">
           <Row label="Subtotal" value={fmt.format(total)} />
-          {cupomData && (
+          {coupon && couponAmountOff > 0 && (
             <Row
-              label={`Cupom ${cupomAplicado}`}
-              value={`− ${fmt.format(desconto)}`}
+              label={`Cupom ${coupon.code}`}
+              value={`− ${fmt.format(couponAmountOff)}`}
               accent="green"
-              extra={
-                <button
-                  type="button"
-                  onClick={removerCupom}
-                  className="ml-2 text-[10px] text-ink-muted hover:text-akira-red transition-colors"
-                  aria-label="Remover cupom"
-                >
-                  [x]
-                </button>
-              }
             />
+          )}
+          {coupon && couponFreeShipping && (
+            <Row label={`Cupom ${coupon.code}`} value={formatCouponLabel(coupon)} accent="green" />
           )}
           <Row
             label="Frete"
@@ -130,38 +93,9 @@ export default function CartSummary() {
         </div>
 
         {/* Cupom */}
-        <form onSubmit={aplicarCupom} className="mt-5 pt-5 border-t border-line">
-          <label className="eyebrow text-ink-muted block mb-2">クーポン · CUPOM</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={cupomInput}
-              onChange={(e) => {
-                setCupomInput(e.target.value);
-                if (cupomErro) setCupomErro(null);
-              }}
-              placeholder="OTAKU10"
-              className="flex-1 bg-bg border-2 border-ink px-3 py-2 text-sm font-mono uppercase tracking-wider text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-akira-cyan focus:shadow-[0_0_0_3px_rgba(0,212,228,0.2)] transition-all"
-              aria-label="Codigo do cupom"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-akira-cyan text-bg font-bold text-xs uppercase tracking-widest border-2 border-akira-cyan shadow-hard hover:bg-bg hover:text-akira-cyan transition-all"
-            >
-              Aplicar
-            </button>
-          </div>
-          {cupomErro && (
-            <p className="mt-2 text-xs text-akira-red font-mono uppercase tracking-wider">
-              × {cupomErro}
-            </p>
-          )}
-          {!cupomAplicado && !cupomErro && (
-            <p className="mt-2 text-[10px] text-ink-muted font-mono">
-              Tente <span className="text-akira-yellow">OTAKU10</span> ou <span className="text-akira-yellow">BAKA</span>
-            </p>
-          )}
-        </form>
+        <div className="mt-5 pt-5 border-t border-line">
+          <CouponInput variant="full" />
+        </div>
 
         {/* Total */}
         <div className="mt-6 pt-5 border-t-2 border-akira-red">
@@ -212,21 +146,16 @@ function Row({
   label,
   value,
   accent,
-  extra,
 }: {
   label: string;
   value: string;
   accent?: "green" | "red";
-  extra?: React.ReactNode;
 }) {
   const valueColor =
     accent === "green" ? "text-akira-green" : accent === "red" ? "text-akira-red" : "text-ink";
   return (
     <div className="flex items-center justify-between">
-      <span className="text-ink-soft flex items-center">
-        {label}
-        {extra}
-      </span>
+      <span className="text-ink-soft">{label}</span>
       <span className={`font-mono numerals ${valueColor}`}>{value}</span>
     </div>
   );
