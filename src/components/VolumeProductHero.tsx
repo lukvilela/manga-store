@@ -93,9 +93,10 @@ export default async function VolumeProductHero({
       <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
         {/* Capa + numero gigante */}
         <div className="md:col-span-5 lg:col-span-5">
+          {/* LCP target: < 2.5s. Capa do volume e o LCP candidate aqui — por isso priority. */}
           <div
             className="relative aspect-[2/3] max-w-md mx-auto md:mx-0 border-4 border-ink shadow-hard-lg depth-stack overflow-hidden"
-            style={{ background: color }}
+            style={{ background: color, viewTransitionName: `cover-${manga.id}` }}
           >
             {heroImage && (
               <Image
@@ -282,6 +283,22 @@ export default async function VolumeProductHero({
               price={price}
               coverImage={heroImage ?? manga.cover}
             />
+
+            {/* Ler preview — abre rota /ler com leitor mock */}
+            <Link
+              href={`/manga/${manga.id}/volume/${volumeNumber}/ler`}
+              className="mt-3 flex items-center justify-between gap-3 border-[3px] border-ink bg-akira-yellow text-bg px-4 py-3 shadow-hard hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group"
+            >
+              <span className="flex items-center gap-2">
+                <span className="jp text-xl">読</span>
+                <span className="display text-sm uppercase tracking-wider">
+                  Ler preview · gratis
+                </span>
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-widest opacity-80 group-hover:opacity-100">
+                +30 XP →
+              </span>
+            </Link>
           </div>
         </div>
       </div>

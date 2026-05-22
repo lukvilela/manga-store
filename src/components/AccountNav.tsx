@@ -35,12 +35,14 @@ const LINKS: Array<{
   label: string;
   kanji: string;
   match: (path: string) => boolean;
-  statKey: "orders" | "estante" | "addresses" | "points" | "badges";
+  statKey: "orders" | "estante" | "addresses" | "points" | "badges" | "pointsRaw";
 }> = [
   { href: "/conta", label: "Dashboard", kanji: "家", match: (p) => p === "/conta", statKey: "points" },
   { href: "/conta/pedidos", label: "Pedidos", kanji: "注", match: (p) => p.startsWith("/conta/pedidos"), statKey: "orders" },
+  { href: "/conta/colecao", label: "Colecao", kanji: "集", match: (p) => p.startsWith("/conta/colecao"), statKey: "estante" },
   { href: "/conta/estante", label: "Estante", kanji: "棚", match: (p) => p.startsWith("/conta/estante"), statKey: "estante" },
   { href: "/conta/conquistas", label: "Conquistas", kanji: "勲", match: (p) => p.startsWith("/conta/conquistas"), statKey: "badges" },
+  { href: "/conta/recompensas", label: "Recompensas", kanji: "報", match: (p) => p.startsWith("/conta/recompensas"), statKey: "pointsRaw" },
   { href: "/conta/enderecos", label: "Enderecos", kanji: "宅", match: (p) => p.startsWith("/conta/enderecos"), statKey: "addresses" },
 ];
 
@@ -58,6 +60,8 @@ export default function AccountNav() {
     estante: estante.count(),
     addresses: addresses.count,
     points: gamiHydrated ? gami.points : 0,
+    // pointsRaw mostrado ao lado do link Recompensas com sufixo pts
+    pointsRaw: gamiHydrated ? `${gami.points} pts` : "0 pts",
     badges: gamiHydrated ? `${gami.badges.length}/${BADGES.length}` : `0/${BADGES.length}`,
   };
 

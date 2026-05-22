@@ -1,20 +1,25 @@
 import Link from "next/link";
+import ParallaxLayer from "@/components/micro/ParallaxLayer";
+import GlitchText from "@/components/micro/GlitchText";
+import CountUp from "@/components/micro/CountUp";
 
 export default function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-[var(--line)]">
-      {/* AKIRA katakana gigante background */}
-      <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
-        aria-hidden
-      >
-        <span
-          className="jp text-akira-red opacity-[0.08] font-black leading-none"
-          style={{ fontSize: "clamp(20rem, 50vw, 60rem)" }}
+      {/* AKIRA katakana gigante background — com parallax sutil no scroll */}
+      <ParallaxLayer speed={0.18} className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute inset-0 flex items-center justify-center select-none overflow-hidden"
+          aria-hidden
         >
-          アキラ
-        </span>
-      </div>
+          <span
+            className="jp text-akira-red opacity-[0.08] font-black leading-none"
+            style={{ fontSize: "clamp(20rem, 50vw, 60rem)" }}
+          >
+            アキラ
+          </span>
+        </div>
+      </ParallaxLayer>
 
       {/* Halftone overlay */}
       <div className="absolute inset-0 halftone-lg opacity-40" aria-hidden />
@@ -44,7 +49,9 @@ export default function Hero() {
 
         {/* Title */}
         <h1 className="display text-[clamp(3.5rem,12vw,11rem)] mt-4 leading-[0.85] reveal" style={{ animationDelay: "0.3s" }}>
-          <span className="block">AKIRA</span>
+          <GlitchText interval={6000} glitchDuration={300} chromatic className="block">
+            AKIRA
+          </GlitchText>
           <span className="block text-akira-red glow-red action-lines pl-2">MANGÁS.</span>
         </h1>
 
@@ -84,19 +91,39 @@ export default function Hero() {
           <span className="jp text-akira-yellow text-6xl font-black opacity-60 glow-yellow">ドン!</span>
         </div>
 
-        {/* Stats bar */}
+        {/* Stats bar — CountUp anima ao entrar no viewport */}
         <div className="mt-20 pt-8 border-t-2 border-akira-red grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 reveal" style={{ animationDelay: "1s" }}>
-          <Stat jp="件数" label="Series catalogadas" value="55.000+" sub="via Jikan API" accent="red" />
-          <Stat jp="種類" label="Generos" value="50+" sub="Shounen · Seinen · Shoujo" accent="cyan" />
-          <Stat jp="画質" label="Capas em alta" value="HD" sub="WebP otimizado" accent="yellow" />
-          <Stat jp="配送" label="Frete" value="Brasil" sub="PIX · cartao · boleto" accent="pink" />
+          <Stat jp="件数" label="Series catalogadas" sub="via Jikan API" accent="red">
+            <CountUp to={55000} duration={1600} suffix="+" />
+          </Stat>
+          <Stat jp="種類" label="Generos" sub="Shounen · Seinen · Shoujo" accent="cyan">
+            <CountUp to={50} duration={1200} suffix="+" />
+          </Stat>
+          <Stat jp="画質" label="Capas em alta" sub="WebP otimizado" accent="yellow">
+            HD
+          </Stat>
+          <Stat jp="配送" label="Frete" sub="PIX · cartao · boleto" accent="pink">
+            Brasil
+          </Stat>
         </div>
       </div>
     </section>
   );
 }
 
-function Stat({ jp, label, value, sub, accent }: { jp: string; label: string; value: string; sub: string; accent: "red"|"cyan"|"yellow"|"pink" }) {
+function Stat({
+  jp,
+  label,
+  children,
+  sub,
+  accent,
+}: {
+  jp: string;
+  label: string;
+  children: React.ReactNode;
+  sub: string;
+  accent: "red" | "cyan" | "yellow" | "pink";
+}) {
   const colorClass = {
     red: "text-akira-red glow-red",
     cyan: "text-akira-cyan glow-cyan",
@@ -110,7 +137,7 @@ function Stat({ jp, label, value, sub, accent }: { jp: string; label: string; va
         <span>·</span>
         <span>{label}</span>
       </div>
-      <div className="display text-3xl md:text-4xl text-ink">{value}</div>
+      <div className="display text-3xl md:text-4xl text-ink">{children}</div>
       <div className="text-xs text-ink-muted mt-1 font-mono">{sub}</div>
     </div>
   );

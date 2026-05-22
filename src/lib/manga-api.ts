@@ -209,6 +209,85 @@ export async function searchManga(query: string, limit = 12): Promise<JikanManga
   }
 }
 
+/**
+ * Filtros avancados pro endpoint /manga do Jikan.
+ *
+ * Jikan v4 aceita esses params direto na query string:
+ * - q, status (publishing|complete|hiatus|discontinued|upcoming)
+ * - start_date / end_date (YYYY-MM-DD)
+ * - min_score (0-10)
+ * - type (manga|manhwa|manhua|novel|lightnovel|oneshot|doujin)
+ * - order_by (score|popularity|favorites|start_date|chapters|volumes|mal_id|title)
+ * - sort (asc|desc)
+ * - genres (CSV ids)
+ *
+ * Pos-processamento: filtra volumes_min/volumes_max localmente
+ * (Jikan nao tem filtro de volumes direto).
+ */
+export type AdvancedFilters = {
+  q?: string;
+  genre?: number | null;
+  status?: "publishing" | "finished" | "hiatus" | null;
+  year_from?: number | null;
+  year_to?: number | null;
+  score_min?: number | null;
+  volumes_min?: number | null;
+  volumes_max?: number | null;
+  type?: "manga" | "manhwa" | "manhua" | "novel" | null;
+  order_by?: "score" | "popularity" | "favorites" | "start_date" | "chapters" | null;
+  sort?: "desc" | "asc" | null;
+  limit?: number;
+};
+
+// Map status local -> status Jikan
+const STATUS_MAP: Record<string, string> = {
+  publishing: "publishing",
+  finished: "complete",
+  hiatus: "hiatus",
+};
+
+export async function searchMangaAdvanced(
+  filters: AdvancedFilters,
+): Promise<JikanManga[]> {
+  const params = new URLSearchParams();
+  const limit = filters.limit ?? 25;
+  params.set("limit", String(limit));
+
+  if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.genre != null) params.set("genres", String(filters.genre));
+  if (filters.status && STATUS_MAP[filters.status]) {
+    params.set("status", STATUS_MAP[filters.status]);
+  }
+  if (filters.year_from) params.set("start_date", `${filters.year_from}-01-01`);
+  if (filters.year_to) params.set("end_date", `${filters.year_to}-12-31`);
+  if (filters.score_min && filters.score_min > 0) {
+    params.set("min_score", String(filters.score_min));
+  }
+  if (filters.type) params.set("type", filters.type);
+  if (filters.order_by) params.set("order_by", filters.order_by);
+  if (filters.sort) params.set("sort", filters.sort);
+  else if (filters.order_by) params.set("sort", "desc");
+
+  try {
+    const r = await jikan<JikanManga[]>(`/manga?${params.toString()}`);
+    let data = r.data;
+
+    // Pos-filtro local: volumes (Jikan nao expoe param)
+    if (filters.volumes_min != null) {
+      data = data.filter((m) => (m.volumes ?? 0) >= (filters.volumes_min as number));
+    }
+    if (filters.volumes_max != null) {
+      data = data.filter(
+        (m) => m.volumes != null && m.volumes <= (filters.volumes_max as number),
+      );
+    }
+    return data;
+  } catch (e) {
+    console.error("[jikan] searchMangaAdvanced failed:", e);
+    return [];
+  }
+}
+
 /** Detalhes de um manga */
 export async function getMangaById(id: number): Promise<JikanManga | null> {
   try {

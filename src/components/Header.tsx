@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import MiniCart from "@/components/MiniCart";
 import GlobalSearch from "@/components/GlobalSearch";
 import StreakBadge from "@/components/gamification/StreakBadge";
+import PointsBadge from "@/components/gamification/PointsBadge";
 import SfxToggle from "@/components/SfxToggle";
 
 export default function Header() {
@@ -13,7 +14,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-[var(--bg)]/85 backdrop-blur-md border-b border-[var(--line)]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between gap-4">
-        <Link href="/" className="group flex items-center gap-3 flex-shrink-0">
+        <Link href="/" className="group flex items-center gap-3 flex-shrink-0 vt-logo">
           <span className="jp text-akira-red text-2xl font-black glow-red">アキラ</span>
           <span className="display text-2xl md:text-3xl text-ink tracking-tight">
             Akira<span className="text-akira-red glow-red"> Mangás</span>
@@ -36,9 +37,17 @@ export default function Header() {
           </Link>
           <Link href="/genero/acao" className="hover:text-akira-yellow transition-colors">Generos</Link>
           <Link href="/busca" className="hover:text-akira-pink transition-colors">Catalogo</Link>
+          <Link href="/comparar" className="hover:text-akira-yellow transition-colors flex items-center gap-1.5">
+            <span>Comparar</span>
+            <span className="jp text-akira-yellow text-[10px]">対決</span>
+          </Link>
           <Link href="/comunidade" className="hover:text-akira-pink transition-colors flex items-center gap-1.5">
             <span>Comunidade</span>
             <span className="jp text-akira-pink text-[10px]">コミュ</span>
+          </Link>
+          <Link href="/ranking" className="hover:text-akira-yellow transition-colors flex items-center gap-1.5">
+            <span>Ranking</span>
+            <span className="jp text-akira-yellow text-[10px]">順位</span>
           </Link>
         </nav>
 
@@ -77,6 +86,7 @@ export default function Header() {
             </>
           )}
           <SfxToggle />
+          <PointsBadge />
           <MiniCart />
         </div>
       </div>

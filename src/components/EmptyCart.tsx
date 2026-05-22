@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MangaCard from "@/components/MangaCard";
+import Newsletter from "@/components/Newsletter";
 import type { MangaCardData } from "@/lib/manga-api";
 
 type Props = {
@@ -61,6 +62,16 @@ export default function EmptyCart({ sugestoes }: Props) {
           >
             Home
           </Link>
+        </div>
+
+        {/* Newsletter — enquanto isso, captacao */}
+        <div className="mt-16 max-w-2xl mx-auto text-left">
+          <Newsletter
+            variant="compact"
+            title="Enquanto isso assine"
+            jpTitle="その間に"
+            subtitle="Te avisamos quando o proximo drop chegar — sem custo, sem spam."
+          />
         </div>
 
         {cards.length > 0 && (

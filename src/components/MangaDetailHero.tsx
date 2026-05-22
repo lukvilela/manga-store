@@ -52,7 +52,7 @@ export default function MangaDetailHero({ manga }: Props) {
         <div className="md:col-span-5 lg:col-span-4">
           <div
             className="relative aspect-[2/3] max-w-md mx-auto md:mx-0 border-4 border-ink shadow-hard-lg depth-stack"
-            style={{ background: color }}
+            style={{ background: color, viewTransitionName: `cover-${manga.id}` }}
           >
             {manga.cover && (
               <Image

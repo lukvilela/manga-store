@@ -303,3 +303,130 @@ html, body {
   cursor: pointer; transition: all 120ms;
 }
 .scroll-btn:hover, .scroll-btn-dark:hover { border-color: var(--akira-red); color: var(--akira-red); }
+
+/* =========================================================================
+ * MICRO-INTERACOES & POLISH (append-only — nao remova nada acima)
+ * ========================================================================= */
+
+/* View Transitions API — fade smooth entre rotas
+ * Suporte: Chrome 111+, Edge 111+, Safari 18+ (mar/2025). Fallback gracioso. */
+@view-transition { navigation: auto; }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+::view-transition-old(root) {
+  animation-name: vt-fade-out;
+}
+::view-transition-new(root) {
+  animation-name: vt-fade-in;
+}
+@keyframes vt-fade-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.995); }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(12px) scale(1.005); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Atribui view-transition-name pro logo do Header (anchored entre rotas) */
+.vt-logo { view-transition-name: akira-logo; }
+/* Capa de manga (clique no card -> expande na detail page).
+ * data-vt-cover usado pra atribuir name unico via attr() (fallback: classe shared) */
+.vt-cover { view-transition-name: manga-cover; }
+::view-transition-old(manga-cover),
+::view-transition-new(manga-cover) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Ripple effect (usado por RippleButton) */
+.ripple-fx {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-grow 600ms cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  mix-blend-mode: screen;
+}
+@keyframes ripple-grow {
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+/* Page transition loader — barra no topo */
+.page-loader {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 200;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--akira-cyan) 20%,
+    var(--akira-red) 50%,
+    var(--akira-red-glow) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transform: translateX(-100%);
+  pointer-events: none;
+  transition: opacity 120ms;
+  box-shadow: 0 0 12px rgba(193, 18, 31, 0.6);
+}
+.page-loader[data-active="true"] {
+  opacity: 1;
+  animation: page-loader-sweep 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) infinite;
+}
+@keyframes page-loader-sweep {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(20%); }
+  100% { transform: translateX(120%); }
+}
+
+/* Hover tilt 3D sutil — aplique em cards interativos.
+ * O perspective vai no pai (.card-lift ja tem transform; combina bem). */
+.hover-tilt {
+  transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.45s;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.hover-tilt:hover {
+  transform: perspective(900px) rotateX(2.5deg) rotateY(-3deg) translateY(-6px);
+}
+@media (hover: none) {
+  .hover-tilt:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-tilt:hover { transform: none; }
+  .page-loader[data-active="true"] { animation: none; opacity: 0.85; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 1ms; }
+}
+
+/* Glitch ativo (usado pelo GlitchText) — disparo programatico */
+@keyframes glitch-shake {
+  0%, 100% { transform: translate(0); }
+  10% { transform: translate(-2px, 1px) skewX(-2deg); }
+  20% { transform: translate(2px, -1px) skewX(2deg); }
+  35% { transform: translate(-1px, 2px); }
+  50% { transform: translate(1px, -2px); }
+  70% { transform: translate(-2px, -1px); }
+  85% { transform: translate(2px, 1px); }
+}
+.glitch-active { animation: glitch-shake 280ms steps(2) both; }
+
+/* Card tilt baseado em mouse (via custom props --mx/--my no MangaCard wrapper) */
+.tilt-mouse {
+  transform: perspective(900px)
+    rotateX(calc(var(--my, 0) * -6deg))
+    rotateY(calc(var(--mx, 0) * 6deg))
+    translateZ(0);
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .tilt-mouse { transform: none; }
+}
