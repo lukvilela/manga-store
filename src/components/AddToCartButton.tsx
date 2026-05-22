@@ -27,7 +27,13 @@ export function AddToCartButton({
   return (
     <button
       type="button"
-      onClick={() => add({ volumeId, seriesSlug, seriesTitle, volumeNumber, price, coverImage })}
+      onClick={() => {
+        add({ volumeId, seriesSlug, seriesTitle, volumeNumber, price, coverImage });
+        if (typeof window !== "undefined") {
+          // 50 XP base + 1 XP por BRL; pontos = floor(price)
+          window.dispatchEvent(new CustomEvent("gamification:cart-add", { detail: { kind: "compra", amount: 50 + Math.floor(price), points: Math.floor(price) } }));
+        }
+      }}
       disabled={stock === 0}
       className={`w-full rounded-xl px-4 py-3 text-sm font-black uppercase tracking-wider transition ${
         stock === 0

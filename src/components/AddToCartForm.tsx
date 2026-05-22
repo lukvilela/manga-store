@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { playPow } from "@/lib/sfx";
 
 type Props = {
   volumeId: string;
@@ -50,6 +51,12 @@ export default function AddToCartForm({
     const label = `Vol. ${volumeNumber}`;
     const qtyText = qty > 1 ? ` (${qty}x)` : "";
     show(`Adicionado: ${seriesTitle} — ${label}${qtyText}`, "success");
+    // SFX impactante — gate interno cuida do toggle off
+    playPow();
+    if (typeof window !== "undefined") {
+      const subtotalInt = Math.floor(price * qty);
+      window.dispatchEvent(new CustomEvent("gamification:cart-add", { detail: { kind: "compra", amount: 50 + subtotalInt, points: subtotalInt } }));
+    }
   };
 
   const handleBuyNow = () => {

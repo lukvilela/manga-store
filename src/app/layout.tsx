@@ -4,6 +4,10 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
+import KonamiListener from "@/components/easter-eggs/KonamiListener";
+import KamehamehaEffect from "@/components/easter-eggs/KamehamehaEffect";
+import Mascote from "@/components/easter-eggs/Mascote";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const display = Bagel_Fat_One({
   subsets: ["latin"],
@@ -51,6 +55,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <CartProvider>
               {children}
+              {/* Easter eggs + polish — globais */}
+              <KonamiListener />
+              <KamehamehaEffect />
+              <Mascote />
+              <ScrollToTop />
             </CartProvider>
           </AuthProvider>
         </ToastProvider>

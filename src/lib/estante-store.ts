@@ -67,6 +67,11 @@ export function useEstante() {
         ? current.map((i) => (i.id === item.id ? { ...i, ...item, status } : i))
         : [...current, { ...item, status, addedAt: new Date().toISOString() }];
       persist(next);
+      // Gamification hook: dispara so quando e item novo (nao re-add)
+      if (typeof window !== "undefined" && !existing) {
+        window.dispatchEvent(new CustomEvent("gamification:estante-add", { detail: { id: item.id, status } }));
+        window.dispatchEvent(new Event("gamification:badge-check"));
+      }
     },
     [persist]
   );

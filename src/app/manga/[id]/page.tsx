@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import MangaDetailHero from "@/components/MangaDetailHero";
@@ -5,11 +6,33 @@ import MangaStats from "@/components/MangaStats";
 import MangaSynopsis from "@/components/MangaSynopsis";
 import MangaVolumes from "@/components/MangaVolumes";
 import MangaCarousel from "@/components/MangaCarousel";
+import SocialMetrics from "@/components/social/SocialMetrics";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
+import PreorderBanner from "@/components/discovery/PreorderBanner";
+import BoxSetCard from "@/components/discovery/BoxSetCard";
+import CarrosselSkeleton from "@/components/skeletons/CarrosselSkeleton";
 import { getMangaById, getMangaRecommendations, toCardData } from "@/lib/manga-api";
+import { getPreorder } from "@/lib/preorders-mock";
+import { getBoxSet } from "@/lib/box-sets";
+
+// Bloco isolado pra streaming via Suspense: hero/stats/sinopse aparecem
+// imediatamente e o carrossel de recomendacoes chega depois com skeleton.
+async function Recommendations({ mangaId }: { mangaId: number }) {
+  const recommendations = await getMangaRecommendations(mangaId, 12);
+  if (recommendations.length === 0) return null;
+  return (
+    <MangaCarousel
+      title="Se voce gostou disso..."
+      subtitle="Recomendacoes"
+      jpTitle="おすすめ"
+      mangas={recommendations.map(toCardData)}
+      accent="violet"
+      size="md"
+    />
+  );
+}
 
 export const revalidate = 3600;
-
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 type Params = { id: string };
 
@@ -36,9 +59,6 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
   const manga = await getMangaById(mangaId);
   if (!manga) notFound();
 
-  await sleep(400);
-  const recommendations = await getMangaRecommendations(mangaId, 12);
-
   const heroData = {
     ...toCardData(manga),
     status: manga.status,
@@ -51,24 +71,41 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
     <>
       <Header />
       <MangaDetailHero manga={heroData} />
+      {manga.publishing && (
+        <PreorderBanner
+          preorder={getPreorder(manga.mal_id, manga.title, manga.volumes)}
+        />
+      )}
       <MangaStats manga={manga} />
+      <SocialMetrics mangaId={String(manga.mal_id)} />
       <MangaSynopsis manga={manga} />
       <MangaVolumes
+        mangaId={manga.mal_id}
         title={manga.title}
         totalVolumes={manga.volumes}
         isPublishing={manga.publishing}
       />
 
-      {recommendations.length > 0 && (
-        <MangaCarousel
-          title="Se voce gostou disso..."
-          subtitle="Recomendacoes"
-          jpTitle="おすすめ"
-          mangas={recommendations.map(toCardData)}
-          accent="violet"
-          size="md"
-        />
+      {manga.volumes && manga.volumes > 1 && (
+        <section className="px-4 md:px-8 py-12 border-b border-[var(--line)]">
+          <div className="max-w-7xl mx-auto">
+            <BoxSetCard
+              boxSet={getBoxSet(manga.mal_id, manga.title, manga.volumes)}
+              coverUrl={manga.images?.jpg?.large_image_url ?? manga.images?.jpg?.image_url ?? null}
+            />
+          </div>
+        </section>
       )}
+
+      <ReviewsSection
+        mangaId={String(manga.mal_id)}
+        mangaTitle={manga.title}
+        mangaCover={manga.images?.jpg?.image_url || ""}
+      />
+
+      <Suspense fallback={<CarrosselSkeleton count={6} showHeader />}>
+        <Recommendations mangaId={mangaId} />
+      </Suspense>
 
       <footer className="relative border-t-4 border-akira-red py-12 px-4 md:px-8 overflow-hidden">
         <div className="absolute inset-0 halftone-lg opacity-25 pointer-events-none" aria-hidden />

@@ -3,7 +3,8 @@ import Hero from "@/components/Hero";
 import MangaCarousel from "@/components/MangaCarousel";
 import MangaSpotlight from "@/components/MangaSpotlight";
 import Footer from "@/components/Footer";
-import { getTopManga, getMangaByGenre, toCardData } from "@/lib/manga-api";
+import TodayDrop from "@/components/discovery/TodayDrop";
+import { getTopManga, getMangaByGenre, getNovidadesManga, toCardData } from "@/lib/manga-api";
 
 // Jikan genre IDs:
 // 1=Action 2=Adventure 4=Comedy 8=Drama 10=Fantasy
@@ -25,16 +26,34 @@ export default async function Home() {
   const fantasy = await getMangaByGenre(10, 16);
   await sleep(400);
   const horror = await getMangaByGenre(14, 12);
+  await sleep(400);
+  const novidades = await getNovidadesManga(12);
 
   // Spotlights — top 3 do hall of fame
   const spotlight1 = topMangas[0] ? toCardData(topMangas[0]) : null;
   const spotlight2 = topMangas[1] ? toCardData(topMangas[1]) : null;
   const spotlight3 = horror[0] ? toCardData(horror[0]) : null;
 
+  // Today Drop — pick determinístico baseado em dia do mes pra trocar o destaque diariamente
+  const dayIdx = new Date().getUTCDate();
+  const pickAt = <T,>(arr: T[], offset: number): T | null =>
+    arr.length ? arr[(dayIdx + offset) % arr.length] : null;
+  const todayNovo = pickAt(novidades, 0);
+  const todayTop = pickAt(topMangas, 1);
+  const joiaPool = topMangas.filter((m) => (m.score ?? 0) >= 8.5 && (m.rank ?? 0) > 100);
+  const todayJoia = pickAt(joiaPool.length ? joiaPool : topMangas, 7);
+
   return (
     <>
       <Header />
       <Hero />
+
+      {/* Drop do dia — novidade + mais vendido + joia */}
+      <TodayDrop
+        novo={todayNovo ? toCardData(todayNovo) : null}
+        maisVendido={todayTop ? toCardData(todayTop) : null}
+        joia={todayJoia ? toCardData(todayJoia) : null}
+      />
 
       {/* Spotlight #1 — Top do mês */}
       {spotlight1 && (

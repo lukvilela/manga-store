@@ -175,6 +175,28 @@ export async function getMangaByGenre(genreId: number, limit = 20): Promise<Jika
   }
 }
 
+/**
+ * Busca mangas combinando multiplos generos + score minimo (usado em /mood).
+ * Jikan aceita genres=4,36 como AND nas tags, ordena por score desc.
+ */
+export async function getMangaByMood(
+  genreIds: number[],
+  minScore: number,
+  limit = 25,
+): Promise<JikanManga[]> {
+  if (!genreIds.length) return [];
+  try {
+    const ids = genreIds.join(",");
+    const r = await jikan<JikanManga[]>(
+      `/manga?genres=${ids}&min_score=${minScore}&order_by=score&sort=desc&limit=${limit}`,
+    );
+    return r.data;
+  } catch (e) {
+    console.error("[jikan] getMangaByMood failed:", e);
+    return [];
+  }
+}
+
 /** Search por nome */
 export async function searchManga(query: string, limit = 12): Promise<JikanManga[]> {
   if (!query.trim()) return [];

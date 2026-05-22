@@ -1,8 +1,10 @@
 import { getMangaColor, getMangaColorAlpha } from "@/lib/manga-colors";
 import { getVolumeCoversByTitle } from "@/lib/mangadex-api";
 import VolumeCoverImage from "./VolumeCoverImage";
+import { getBoxSet, formatBRL } from "@/lib/box-sets";
 
 type Props = {
+  mangaId: number;
   title: string;
   totalVolumes: number | null;
   isPublishing: boolean;
@@ -20,6 +22,7 @@ type Props = {
  * sem quebrar a UI.
  */
 export default async function MangaVolumes({
+  mangaId,
   title,
   totalVolumes,
   isPublishing,
@@ -133,24 +136,41 @@ export default async function MangaVolumes({
           </p>
         )}
 
-        {/* Box set deal */}
-        <div className="mt-12 panel-frame px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="eyebrow text-akira-yellow glow-yellow mb-2">📦 Box Set Deal</p>
-            <p className="display text-2xl md:text-3xl text-ink">
-              Colecao completa <span className="text-akira-red">15% off</span>
-            </p>
-            <p className="text-sm text-ink-muted font-mono mt-1">
-              Todos os {totalVolumes} volumes em uma compra. Frete unico.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="shimmer px-8 py-4 bg-akira-red text-ink font-bold uppercase tracking-widest text-sm border-2 border-ink shadow-hard hover:shadow-hard-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
-          >
-            Comprar tudo →
-          </button>
-        </div>
+        {/* Box set deal — agora usa getBoxSet() pra precos consistentes */}
+        {(() => {
+          const box = getBoxSet(mangaId, title, totalVolumes);
+          return (
+            <div className="mt-12 panel-frame px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex-1">
+                <p className="eyebrow text-akira-yellow glow-yellow mb-2">📦 Box Set Deal</p>
+                <p className="display text-2xl md:text-3xl text-ink">
+                  Colecao completa{" "}
+                  <span className="text-akira-red">{box.discountPct}% off</span>
+                </p>
+                <p className="text-sm text-ink-muted font-mono mt-1">
+                  Todos os {box.totalVolumes} volumes em uma compra. Frete unico.
+                </p>
+                <p className="text-xs font-mono text-akira-green mt-2 numerals">
+                  Voce economiza {formatBRL(box.savings)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-mono text-ink-muted uppercase tracking-widest line-through numerals">
+                  {formatBRL(box.totalRegular)}
+                </p>
+                <p className="display text-3xl md:text-4xl text-akira-red glow-red numerals">
+                  {formatBRL(box.totalDiscounted)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shimmer px-8 py-4 bg-akira-red text-ink font-bold uppercase tracking-widest text-sm border-2 border-ink shadow-hard hover:shadow-hard-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all whitespace-nowrap"
+              >
+                Comprar tudo →
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </section>
   );

@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEstante } from "@/lib/estante-store";
 import { useAddresses } from "@/lib/addresses-store";
+import { useGamification } from "@/lib/gamification-store";
+import { BADGES } from "@/lib/badges";
 import { useEffect, useState } from "react";
 
 type OrderSummary = { orderId: string };
@@ -33,11 +35,12 @@ const LINKS: Array<{
   label: string;
   kanji: string;
   match: (path: string) => boolean;
-  statKey: "orders" | "estante" | "addresses" | "points";
+  statKey: "orders" | "estante" | "addresses" | "points" | "badges";
 }> = [
   { href: "/conta", label: "Dashboard", kanji: "家", match: (p) => p === "/conta", statKey: "points" },
   { href: "/conta/pedidos", label: "Pedidos", kanji: "注", match: (p) => p.startsWith("/conta/pedidos"), statKey: "orders" },
   { href: "/conta/estante", label: "Estante", kanji: "棚", match: (p) => p.startsWith("/conta/estante"), statKey: "estante" },
+  { href: "/conta/conquistas", label: "Conquistas", kanji: "勲", match: (p) => p.startsWith("/conta/conquistas"), statKey: "badges" },
   { href: "/conta/enderecos", label: "Enderecos", kanji: "宅", match: (p) => p.startsWith("/conta/enderecos"), statKey: "addresses" },
 ];
 
@@ -48,12 +51,14 @@ export default function AccountNav() {
   const estante = useEstante();
   const addresses = useAddresses();
   const ordersCount = useOrdersCount();
+  const { state: gami, hydrated: gamiHydrated } = useGamification();
 
   const stats = {
     orders: ordersCount,
     estante: estante.count(),
     addresses: addresses.count,
-    points: 250,
+    points: gamiHydrated ? gami.points : 0,
+    badges: gamiHydrated ? `${gami.badges.length}/${BADGES.length}` : `0/${BADGES.length}`,
   };
 
   const handleLogout = async () => {
