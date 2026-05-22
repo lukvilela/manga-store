@@ -1,9 +1,9 @@
-# MANGAVERSE — Neo-Tokyo Manga Store
+# Akira Mangás — Neo-Tokyo Manga Store
 
 > A loja de mangás cyberpunk inspirada na estética de **AKIRA** (Otomo Katsuhiro, 1982).
 > Catálogo curado de 55.000+ séries via MyAnimeList, capas reais por volume via MangaDex, navegação por gênero/demographic/autor, carrinho persistente, checkout multi-step.
 
-![MangaVerse](https://img.shields.io/badge/MANGA-VERSE-c1121f?style=for-the-badge&labelColor=0a0a0d)
+![Akira Mangás](https://img.shields.io/badge/AKIRA-MANG%C3%81S-c1121f?style=for-the-badge&labelColor=0a0a0d)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
 ![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss)
@@ -215,6 +215,6 @@ Abrir [http://localhost:3000](http://localhost:3000)
 ---
 
 <p align="center">
-  <strong>漫画ヴァース · MANGAVERSE</strong><br>
+  <strong>アキラ・マンガ · AKIRA MANGÁS</strong><br>
   <em>Built in Neo-Tokyo · Inspired by Otomo Katsuhiro · Powered by Jikan + MangaDex</em>
 </p>

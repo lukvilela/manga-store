@@ -47,7 +47,7 @@ export default function ComunidadePage() {
           </h1>
           <p className="max-w-2xl text-base md:text-lg text-ink-soft leading-relaxed">
             As ultimas opinioes que os leitores cuspiram. Reviews fresquinhas
-            dos mangas mais comentados em MangaVerse.
+            dos mangas mais comentados em Akira Mangás.
           </p>
         </div>
       </section>
@@ -113,7 +113,7 @@ export default function ComunidadePage() {
       <footer className="relative border-t-4 border-akira-red py-12 px-4 md:px-8 overflow-hidden">
         <div className="absolute inset-0 halftone-lg opacity-25 pointer-events-none" aria-hidden />
         <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · Comunidade</p>
+          <p>© 2026 · Akira Mangás · Comunidade</p>
           <p>
             <span className="text-akira-red glow-red">DOKI!</span> Made in Brasil
           </p>

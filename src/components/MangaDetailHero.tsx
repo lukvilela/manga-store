@@ -93,7 +93,7 @@ export default function MangaDetailHero({ manga }: Props) {
           {/* Breadcrumb */}
           <div className="flex items-center gap-3 mb-6 text-xs font-mono uppercase tracking-widest">
             <Link href="/" className="text-ink-muted hover:text-akira-cyan transition-colors">
-              MangaVerse
+              Akira Mangás
             </Link>
             <span className="text-ink-muted">/</span>
             <Link href="/busca" className="text-ink-muted hover:text-akira-cyan transition-colors">

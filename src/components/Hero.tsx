@@ -38,14 +38,14 @@ export default function Hero() {
         {/* Japanese title */}
         <div className="reveal" style={{ animationDelay: "0.2s" }}>
           <span className="jp text-akira-red text-3xl md:text-5xl font-black glow-red">
-            漫画ヴァース
+            アキラ・マンガ
           </span>
         </div>
 
         {/* Title */}
         <h1 className="display text-[clamp(3.5rem,12vw,11rem)] mt-4 leading-[0.85] reveal" style={{ animationDelay: "0.3s" }}>
-          <span className="block">MANGA</span>
-          <span className="block text-akira-red glow-red action-lines pl-2">VERSE.</span>
+          <span className="block">AKIRA</span>
+          <span className="block text-akira-red glow-red action-lines pl-2">MANGÁS.</span>
         </h1>
 
         {/* Tagline */}

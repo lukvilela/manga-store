@@ -186,7 +186,7 @@ export default async function AutorPage({ params }: { params: Promise<Params> })
 
       <footer className="border-t-2 border-akira-violet py-8 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · Bio via MyAnimeList</p>
+          <p>© 2026 · Akira Mangás · Bio via MyAnimeList</p>
           <p><span className="text-akira-violet">作</span> Author Spotlight</p>
         </div>
       </footer>

@@ -15,7 +15,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "primeira-impressao",
     name: "Primeira impressao",
-    description: "Voce criou sua conta na MANGAVERSE.",
+    description: "Voce criou sua conta na AKIRA MANGÁS.",
     xp: 50,
     icon: "新",
   },

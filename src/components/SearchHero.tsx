@@ -81,7 +81,7 @@ export default function SearchHero({ initialQuery = "", resultsCount }: Props) {
 
         <h1 className="display text-5xl md:text-8xl leading-[0.9] mb-6">
           <span className="block">BUSCAR</span>
-          <span className="block text-akira-red glow-red">MANGAVERSE.</span>
+          <span className="block text-akira-red glow-red">AKIRA MANGÁS.</span>
         </h1>
 
         <p className="text-lg md:text-xl text-ink-soft max-w-2xl mb-10">

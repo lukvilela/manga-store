@@ -40,7 +40,7 @@ export default function ContaLayout({ children }: { children: React.ReactNode })
         <footer className="border-t-2 border-[var(--line)] bg-[var(--bg-2)]">
           <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 flex items-center justify-between flex-wrap gap-3">
             <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase tracking-widest">
-              {">"} mangaverse // neo-tokyo manga distribution // 2026
+              {">"} akira-mangas // neo-tokyo manga distribution // 2026
             </p>
             <p className="jp text-sm text-[var(--akira-red)] glow-red">アキラ</p>
           </div>

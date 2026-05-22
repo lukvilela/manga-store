@@ -1,8 +1,18 @@
 import type { JikanManga } from "@/lib/manga-api";
 
-type Props = { manga: JikanManga };
+type Props = {
+  manga: JikanManga;
+  /** True quando a sinopse foi traduzida automaticamente EN->PT-BR */
+  synopsisTranslated?: boolean;
+  /** True quando o background foi traduzido automaticamente EN->PT-BR */
+  backgroundTranslated?: boolean;
+};
 
-export default function MangaSynopsis({ manga }: Props) {
+export default function MangaSynopsis({
+  manga,
+  synopsisTranslated,
+  backgroundTranslated,
+}: Props) {
   if (!manga.synopsis && !manga.background) return null;
 
   return (
@@ -25,6 +35,7 @@ export default function MangaSynopsis({ manga }: Props) {
                 </p>
               ))}
             </div>
+            {synopsisTranslated && <AutoTranslatedNote />}
           </article>
         )}
 
@@ -43,6 +54,7 @@ export default function MangaSynopsis({ manga }: Props) {
                 </p>
               ))}
             </div>
+            {backgroundTranslated && <AutoTranslatedNote />}
           </article>
         )}
 
@@ -69,6 +81,17 @@ export default function MangaSynopsis({ manga }: Props) {
         </div>
       </div>
     </section>
+  );
+}
+
+function AutoTranslatedNote() {
+  return (
+    <p className="mt-4 font-mono text-[10px] uppercase tracking-widest opacity-60 flex items-center gap-2">
+      <span aria-hidden>※</span>
+      <span>Traduzido automaticamente</span>
+      <span aria-hidden>·</span>
+      <span className="jp">自動翻訳</span>
+    </p>
   );
 }
 

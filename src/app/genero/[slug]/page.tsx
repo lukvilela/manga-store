@@ -182,7 +182,7 @@ export default async function GeneroPage({ params }: { params: Promise<Params> }
 
       <footer className={`border-t-2 ${accentBorder} py-8 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-3 text-xs font-mono text-ink-muted uppercase tracking-widest">
-          <p>© 2026 · MangaVerse · {genre.nameEn} curado</p>
+          <p>© 2026 · Akira Mangás · {genre.nameEn} curado</p>
           <p><span className={accentTxt}>{genre.jp}</span> Genre Spotlight</p>
         </div>
       </footer>
