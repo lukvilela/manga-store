@@ -228,6 +228,7 @@ export default function PixPaymentPanel({ amount, submitting, onConfirm }: Props
           type="button"
           onClick={onConfirm}
           disabled={submitting || expired}
+          data-testid="pix-simulate"
           className="shimmer group relative flex w-full items-center justify-center gap-3 border-[3px] border-[var(--ink)] bg-[var(--akira-red)] px-8 py-5 text-[var(--ink)] shadow-hard transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-hard"
         >
           {submitting ? (

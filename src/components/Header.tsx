@@ -49,6 +49,10 @@ export default function Header() {
             <span>Ranking</span>
             <span className="jp text-akira-yellow text-[10px]">順位</span>
           </Link>
+          <Link href="/sobre" className="hover:text-akira-cyan transition-colors flex items-center gap-1.5">
+            <span>Sobre</span>
+            <span className="jp text-akira-cyan text-[10px]">紹介</span>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3 md:gap-4 text-sm">

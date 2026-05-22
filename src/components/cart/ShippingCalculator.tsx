@@ -152,6 +152,7 @@ export default function ShippingCalculator() {
             onChange={(e) => handleCepChange(e.target.value)}
             placeholder="00000-000"
             aria-label="CEP de entrega"
+            data-testid="cep-input"
             className="flex-1 bg-bg border-2 border-ink px-4 py-3 text-base font-mono uppercase tracking-wider text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-akira-yellow focus:shadow-[0_0_0_3px_rgba(255,209,0,0.2)] transition-all numerals"
             maxLength={9}
           />

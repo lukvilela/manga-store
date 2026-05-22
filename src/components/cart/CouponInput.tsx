@@ -106,6 +106,7 @@ export default function CouponInput({ variant = "full" }: Props) {
             if (error) setError(null);
           }}
           placeholder="AKIRA10"
+          data-testid="coupon-input"
           className="flex-1 bg-bg border-2 border-ink px-3 py-2 text-sm font-mono uppercase tracking-wider text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-akira-cyan focus:shadow-[0_0_0_3px_rgba(0,212,228,0.2)] transition-all"
           aria-label="Codigo do cupom"
         />
