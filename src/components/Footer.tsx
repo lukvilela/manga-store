@@ -88,6 +88,13 @@ export default function Footer() {
             <p className="text-sm text-ink-soft mt-4 max-w-xs">
               Catalogo curado de mangas com vibracao Akira, capas em alta resolucao e ritual cyberpunk.
             </p>
+            <Link
+              href="/sobre"
+              className="inline-flex items-center gap-2 mt-4 text-xs font-mono uppercase tracking-widest text-akira-cyan glow-cyan hover:text-akira-pink transition-colors"
+            >
+              <span>Sobre · Case Study</span>
+              <span aria-hidden>→</span>
+            </Link>
           </div>
 
           <FooterColumn

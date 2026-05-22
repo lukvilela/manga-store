@@ -41,6 +41,7 @@ export default function CartItemRow({ item }: Props) {
 
   return (
     <article
+      data-testid="cart-item"
       className="relative bg-bg-2 border-2 border-ink shadow-hard hover:shadow-hard-lg transition-all duration-300 group"
     >
       {/* Faixa lateral colorida — identidade da serie */}

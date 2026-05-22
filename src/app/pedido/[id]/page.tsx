@@ -144,7 +144,7 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
 
           <div className="mt-8 inline-block border-[3px] border-[var(--ink)] bg-[var(--bg-3)] px-6 py-3 shadow-hard">
             <p className="eyebrow !text-[var(--ink-muted)]">Numero do pedido</p>
-            <p className="display mt-1 text-3xl text-[var(--akira-cyan)] glow-cyan numerals">
+            <p data-testid="order-number" className="display mt-1 text-3xl text-[var(--akira-cyan)] glow-cyan numerals">
               #{id}
             </p>
           </div>

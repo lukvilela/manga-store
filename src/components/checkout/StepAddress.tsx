@@ -139,6 +139,7 @@ export default function StepAddress({ value, onChange, onNext, onBack }: Props) 
               }}
               onBlur={handleCepBlur}
               placeholder="00000-000"
+              data-testid="cep-input"
               className={inputCls(!!errors.cep)}
             />
             {cepLoading && (

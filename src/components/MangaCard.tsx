@@ -19,6 +19,7 @@ export default function MangaCard({ manga, size = "md" }: Props) {
   return (
     <Link
       href={`/manga/${manga.id}`}
+      data-testid="manga-card"
       className={`group block flex-shrink-0 card-lift hover-tilt ${widthClass}`}
     >
       {/* Frame colorido externo */}

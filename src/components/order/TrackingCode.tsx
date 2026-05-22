@@ -40,7 +40,7 @@ export default function TrackingCode({ code, available }: Props) {
         </div>
         {available ? (
           <>
-            <p className="font-mono text-xl md:text-2xl font-bold text-[var(--ink)] tracking-widest mb-3 select-all">
+            <p data-testid="tracking-code" className="font-mono text-xl md:text-2xl font-bold text-[var(--ink)] tracking-widest mb-3 select-all">
               {code}
             </p>
             <div className="flex flex-wrap gap-2">

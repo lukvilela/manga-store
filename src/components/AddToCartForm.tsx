@@ -155,6 +155,7 @@ export default function AddToCartForm({
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
+            data-testid="add-to-cart"
             onClick={handleAdd}
             className="shimmer hover-lift relative group flex-1 inline-flex items-center justify-center gap-3 px-6 py-4 bg-akira-red text-ink font-bold uppercase tracking-widest text-sm border-2 border-ink shadow-hard-lg transition-all"
           >
