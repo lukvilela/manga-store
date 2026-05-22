@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/lucas/.claude/projects/c--Users-lucas-Desktop-manga-store/memory/**)",
+      "Bash(ls -la c:/Users/lucas/Desktop/manga-store/.env*)",
+      "Bash(npx prisma:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
