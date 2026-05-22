@@ -1,43 +1,20 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-type StoredOrder = {
-  orderId: string;
-  identification: { name: string; email: string; mode: string };
-  address: {
-    cep: string;
-    street: string;
-    number: string;
-    complement: string;
-    district: string;
-    city: string;
-    state: string;
-  };
-  shipping: "PAC" | "SEDEX" | "PICKUP";
-  payment: "PIX" | "CREDIT_CARD" | "BOLETO";
-  installments: number;
-  items: Array<{
-    volumeId: string;
-    seriesTitle: string;
-    volumeNumber: number;
-    quantity: number;
-    price: number;
-    coverImage: string;
-  }>;
-  totals: { subtotal: number; shipping: number; discount: number; total: number };
-  createdAt: string;
-};
+import OrderTimeline from "@/components/order/OrderTimeline";
+import TrackingCode from "@/components/order/TrackingCode";
+import { useToast } from "@/context/ToastContext";
+import {
+  buildTimeline,
+  deriveStatus,
+  getOrder,
+  getStatusMeta,
+  type StoredOrder,
+} from "@/lib/orders-store";
 
 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-const shippingMeta: Record<StoredOrder["shipping"], { label: string; eta: string }> = {
-  PAC: { label: "PAC Correios", eta: "7-10 dias uteis" },
-  SEDEX: { label: "SEDEX Expresso", eta: "2-4 dias uteis" },
-  PICKUP: { label: "Retirada na loja", eta: "Disponivel em 24h" },
-};
 
 const paymentMeta: Record<StoredOrder["payment"], { label: string; status: string }> = {
   PIX: { label: "PIX", status: "Aguardando pagamento — gere o QR code" },
@@ -47,20 +24,48 @@ const paymentMeta: Record<StoredOrder["payment"], { label: string; status: strin
 
 export default function OrderSuccessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { show } = useToast();
   const [order, setOrder] = useState<StoredOrder | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(`order:${id}`);
-      if (raw) setOrder(JSON.parse(raw));
-    } catch {
-      // ignore
+    // Hidrata do localStorage (com fallback pra sessionStorage legado)
+    let stored = getOrder(id);
+    if (!stored) {
+      try {
+        const raw = sessionStorage.getItem(`order:${id}`);
+        if (raw) stored = JSON.parse(raw);
+      } catch {
+        // ignore
+      }
     }
+    setOrder(stored ?? null);
     setLoaded(true);
+
+    // Tick a cada 30s pra timeline evoluir visualmente
+    const interval = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(interval);
   }, [id]);
 
-  const ship = order ? shippingMeta[order.shipping] : null;
+  // Avisa quando status mudar ao longo da sessao
+  const status = order ? deriveStatus(order) : null;
+  const [lastStatus, setLastStatus] = useState<typeof status>(null);
+  useEffect(() => {
+    if (!status) return;
+    if (lastStatus && lastStatus !== status) {
+      const meta = getStatusMeta(status);
+      show(`Status atualizado: ${meta.label}`, "success", 4000);
+    }
+    setLastStatus(status);
+  }, [status, lastStatus, show]);
+
+  const timeline = useMemo(() => (order ? buildTimeline(order) : []), [order]);
+  const statusMeta = status ? getStatusMeta(status) : null;
+
+  const trackingAvailable =
+    !!status && ["enviado", "a_caminho", "entregue"].includes(status);
+
   const pay = order ? paymentMeta[order.payment] : null;
 
   return (
@@ -86,19 +91,32 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
               #{id}
             </p>
           </div>
+
+          {statusMeta && (
+            <div className="mt-4">
+              <span
+                className="inline-block border-[2px] border-[var(--ink)] px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest"
+                style={{ background: statusMeta.color, color: "var(--bg)" }}
+              >
+                {statusMeta.kanji} · {statusMeta.label}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Conteudo */}
       <section className="mx-auto max-w-5xl px-4 py-12 md:px-6">
         {!loaded ? (
-          <p className="text-center font-mono text-sm text-[var(--ink-muted)] uppercase">{">"} carregando pedido...</p>
+          <p className="text-center font-mono text-sm text-[var(--ink-muted)] uppercase">
+            {">"} carregando pedido...
+          </p>
         ) : !order ? (
           <div className="panel-frame mx-auto max-w-xl p-8 text-center">
             <p className="display text-3xl text-[var(--akira-yellow)] glow-yellow">PEDIDO NAO ENCONTRADO</p>
             <p className="jp mt-2 text-base text-[var(--ink-muted)]">見つかりません</p>
             <p className="mt-4 text-sm text-[var(--ink-soft)]">
-              O pedido <span className="font-mono">{id}</span> nao esta na sessao atual.
+              O pedido <span className="font-mono">{id}</span> nao foi encontrado.
             </p>
             <Link
               href="/"
@@ -121,42 +139,16 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
                   <span className="font-mono text-[var(--akira-cyan)]">{order.identification.email}</span>
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-[var(--ink-muted)] uppercase">
-                  {">"} verifique a caixa de entrada e o spam
+                  {">"} verifique a caixa de entrada e o spam · email mock pra demo
                 </p>
               </div>
             </div>
 
-            {/* Proximos passos */}
-            <div>
-              <div className="mb-5 flex items-baseline gap-3">
-                <span className="display text-3xl text-[var(--ink)]">PROXIMOS PASSOS</span>
-                <span className="jp text-lg text-[var(--akira-pink)]">次のステップ</span>
-              </div>
+            {/* Timeline de rastreio */}
+            <OrderTimeline timeline={timeline} />
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <NextStep
-                  num="01"
-                  kanji="払"
-                  title="Pagamento"
-                  status={pay?.status || "Processando"}
-                  color="var(--akira-yellow)"
-                />
-                <NextStep
-                  num="02"
-                  kanji="箱"
-                  title="Preparacao"
-                  status="Separamos em ate 1 dia util"
-                  color="var(--akira-cyan)"
-                />
-                <NextStep
-                  num="03"
-                  kanji="便"
-                  title={ship?.label || "Envio"}
-                  status={`Entrega: ${ship?.eta || "-"}`}
-                  color="var(--akira-pink)"
-                />
-              </div>
-            </div>
+            {/* Codigo de rastreio */}
+            <TrackingCode code={order.trackingCode} available={trackingAvailable} />
 
             {/* Resumo do pedido */}
             <div className="panel-frame bg-[var(--bg-2)] p-6 md:p-8">
@@ -169,7 +161,7 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
                 {order.items.map((it) => (
                   <li key={it.volumeId} className="flex items-center gap-4 border-b border-[var(--line)] pb-3 last:border-0">
                     <div className="relative h-20 w-14 flex-shrink-0 overflow-hidden border-2 border-[var(--ink)] shadow-hard">
-                      <Image src={it.coverImage} alt={it.seriesTitle} fill className="object-cover" />
+                      <Image src={it.coverImage} alt={it.seriesTitle} fill className="object-cover" unoptimized />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="display text-base text-[var(--ink)]">{it.seriesTitle}</p>
@@ -187,13 +179,13 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
               <div className="mt-5 space-y-1.5 border-t-2 border-dashed border-[var(--line)] pt-4 text-sm">
                 <Row label="Subtotal" value={fmt.format(order.totals.subtotal)} />
                 <Row
-                  label="Frete"
+                  label={`Frete · ${order.shippingLabel}`}
                   value={order.totals.shipping === 0 ? "GRATIS" : fmt.format(order.totals.shipping)}
                   highlight={order.totals.shipping === 0 ? "var(--akira-green)" : undefined}
                 />
                 {order.totals.discount > 0 && (
                   <Row
-                    label="Desconto"
+                    label={`Desconto · ${pay?.label ?? ""}`}
                     value={`- ${fmt.format(order.totals.discount)}`}
                     highlight="var(--akira-cyan)"
                   />
@@ -225,12 +217,13 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
                 <p className="font-mono text-xs text-[var(--ink-muted)]">CEP {order.address.cep}</p>
               </InfoCard>
 
-              <InfoCard kanji="追" title="Rastreio">
+              <InfoCard kanji="便" title="Frete & ETA">
+                <p className="font-mono text-sm text-[var(--ink)]">{order.shippingLabel}</p>
                 <p className="font-mono text-sm text-[var(--ink-soft)]">
-                  Codigo de rastreio sera enviado por email assim que o pedido for despachado.
+                  Previsao: {order.shippingEtaDays} dia{order.shippingEtaDays > 1 ? "s" : ""} util(eis)
                 </p>
-                <p className="font-mono text-[10px] text-[var(--ink-muted)] uppercase mt-2">
-                  {">"} acompanhe em /minha-conta/pedidos
+                <p className="font-mono text-[10px] text-[var(--ink-muted)] mt-1 uppercase">
+                  {">"} status atualizado automaticamente
                 </p>
               </InfoCard>
             </div>
@@ -245,49 +238,17 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ id: str
                 <span className="jp text-sm">続</span>
               </Link>
               <Link
-                href={`/pedido/${id}`}
+                href="/conta/pedidos"
                 className="shimmer relative inline-flex items-center justify-center gap-3 border-[3px] border-[var(--ink)] bg-[var(--akira-red)] px-8 py-4 text-[var(--ink)] shadow-hard transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
               >
-                <span className="display text-base uppercase tracking-wider">Acompanhar pedido</span>
-                <span className="jp text-sm">追跡</span>
+                <span className="display text-base uppercase tracking-wider">Meus pedidos</span>
+                <span className="jp text-sm">注文</span>
               </Link>
             </div>
           </div>
         )}
       </section>
     </main>
-  );
-}
-
-function NextStep({
-  num,
-  kanji,
-  title,
-  status,
-  color,
-}: {
-  num: string;
-  kanji: string;
-  title: string;
-  status: string;
-  color: string;
-}) {
-  return (
-    <div className="relative border-[2px] border-[var(--line)] bg-[var(--bg-2)] p-5 transition hover:border-[var(--ink-soft)]">
-      <span
-        className="absolute -right-2 -top-2 px-2 py-0.5 font-mono text-[10px] font-bold"
-        style={{ background: color, color: "var(--bg)" }}
-      >
-        {num}
-      </span>
-      <div className="flex items-center gap-3">
-        <span className="jp text-3xl" style={{ color }}>
-          {kanji}
-        </span>
-        <p className="display text-lg text-[var(--ink)]">{title}</p>
-      </div>
-      <p className="mt-2 font-mono text-xs text-[var(--ink-soft)]">{status}</p>
-    </div>
   );
 }
 
