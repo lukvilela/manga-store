@@ -169,9 +169,9 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     // Botao "Aplicar" na mesma form do CouponInput
     await page.getByRole("button", { name: "Aplicar" }).click();
 
-    // Cupom aplicado vira um box com "AKIRA10" + label "10% OFF"
+    // Cupom aplicado vira um box com "AKIRA10" + label "-10%" (formato do formatCouponLabel)
     await expect(page.getByText(/AKIRA10/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/10% OFF/i).first()).toBeVisible();
+    await expect(page.getByText(/-10%/i).first()).toBeVisible();
 
     // ============================================================
     // 10. CHECKOUT STEP 1 — identificacao (guest)
@@ -181,8 +181,8 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     await page.getByRole("link", { name: /Ir pra Checkout/i }).click();
     await page.waitForURL("**/checkout", { timeout: 30_000 });
 
-    // Aguarda step 1 renderizar
-    await expect(page.getByText(/IDENTIFICACAO/i)).toBeVisible({ timeout: 15_000 });
+    // Aguarda step 1 renderizar (heading h2)
+    await expect(page.getByRole("heading", { name: /IDENTIFICACAO/i })).toBeVisible({ timeout: 15_000 });
 
     // Se temos user logado, precisamos trocar pra guest mode
     const switchToGuest = page.getByRole("button", { name: /usar outro email/i });
@@ -202,7 +202,7 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     // ============================================================
     // 11. CHECKOUT STEP 2 — endereco. CEP ja vem preenchido do carrinho.
     // ============================================================
-    await expect(page.getByText(/ENDERECO/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /ENDERECO/i })).toBeVisible({ timeout: 15_000 });
 
     // CEP hidratado: valida que o input ja tem valor (pode demorar — useEffect async)
     const checkoutCep = page.locator('[data-testid="cep-input"]');
@@ -221,7 +221,7 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     // ============================================================
     // 12. CHECKOUT STEP 3 — frete (SEDEX) + pagamento (PIX)
     // ============================================================
-    await expect(page.getByText(/FRETE & PAGAMENTO/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /FRETE.*PAGAMENTO/i })).toBeVisible({ timeout: 15_000 });
 
     // Seleciona SEDEX (clica no label que contem "SEDEX Expresso")
     await page.getByText(/SEDEX Expresso/i).first().click();
@@ -235,7 +235,7 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     // ============================================================
     // 13. CHECKOUT STEP 4 — revisa resumo, clica "Ir para pagamento"
     // ============================================================
-    await expect(page.getByText(/CONFIRMACAO/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /CONFIRMACAO/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/Total a pagar/i)).toBeVisible();
 
     await page.getByRole("button", { name: /Ir para pagamento/i }).click();
@@ -270,7 +270,8 @@ test.describe("Akira Mangas — fluxo completo de compra", () => {
     // entao aceitamos qualquer um dos dois)
     await expect(
       page
-        .locator('[data-testid="tracking-code"], text=/Disponivel apos o despacho/i')
+        .locator('[data-testid="tracking-code"]')
+        .or(page.getByText(/Disponivel apos o despacho/i))
         .first()
     ).toBeVisible({ timeout: 15_000 });
 
