@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getMangaColor, getMangaColorAlpha, getContrastText } from "@/lib/manga-colors";
 import type { MangaCardData } from "@/lib/manga-api";
+import MangaDetailActions from "./MangaDetailActions";
 
 type Props = { manga: MangaCardData & { status?: string; chapters?: number | null; publishing?: boolean; titleEnglish?: string | null } };
 
@@ -198,34 +199,7 @@ export default function MangaDetailHero({ manga }: Props) {
           )}
 
           {/* CTAs */}
-          <div className="flex flex-wrap items-center gap-3 mt-8">
-            <button
-              type="button"
-              className="shimmer inline-flex items-center gap-3 px-8 py-4 bg-akira-red text-ink font-bold uppercase tracking-widest text-sm border-2 border-ink shadow-hard-lg hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[12px_12px_0_var(--ink)] transition-all"
-            >
-              <span>Comprar colecao</span>
-              <span className="text-lg">→</span>
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-3 px-6 py-4 font-bold uppercase tracking-widest text-sm border-2 hover:bg-ink transition-all"
-              style={{ borderColor: text, color: text }}
-            >
-              <span>+</span>
-              <span>Adicionar a estante</span>
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 px-4 py-4 border-2 hover:bg-akira-pink hover:text-bg transition-all"
-              style={{
-                borderColor: isDark ? "var(--akira-pink)" : "rgba(0,0,0,0.7)",
-                color: isDark ? "var(--akira-pink)" : "rgba(0,0,0,0.85)",
-              }}
-              aria-label="Wishlist"
-            >
-              <span>♥</span>
-            </button>
-          </div>
+          <MangaDetailActions manga={manga} text={text} isDark={isDark} />
         </div>
       </div>
     </section>
