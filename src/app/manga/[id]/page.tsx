@@ -102,12 +102,14 @@ export default async function MangaDetailPage({ params }: { params: Promise<Para
         synopsisTranslated={manga.synopsisTranslated}
         backgroundTranslated={manga.backgroundTranslated}
       />
-      <MangaVolumes
-        mangaId={manga.mal_id}
-        title={manga.title}
-        totalVolumes={manga.volumes}
-        isPublishing={manga.publishing}
-      />
+      <div id="volumes" style={{ scrollMarginTop: "80px" }}>
+        <MangaVolumes
+          mangaId={manga.mal_id}
+          title={manga.title}
+          totalVolumes={manga.volumes}
+          isPublishing={manga.publishing}
+        />
+      </div>
 
       {manga.volumes && manga.volumes > 1 && (
         <section className="px-4 md:px-8 py-12 border-b border-[var(--line)]">
